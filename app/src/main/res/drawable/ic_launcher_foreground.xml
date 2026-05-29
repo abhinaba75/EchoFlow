@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Sophisticated drop shadow for 3D depth -->
+    <path
+        android:fillColor="#120D2040"
+        android:pathData="M 54,23 C 37,23 23,34 23,48 C 23,55 28,62 35,67 L 31,81 L 46,75 C 48,76 51,77 54,77 C 71,77 85,66 85,48 C 85,34 71,23 54,23 Z" />
+
+    <!-- Premium Messenger capsule bubble -->
+    <path
+        android:fillColor="#7B1FA2"
+        android:pathData="M 54,21 C 38,21 25,32 25,46 C 25,53 29,60 36,65 L 32,78 L 46,72 C 48,73 51,74 54,74 C 70,74 83,63 83,46 C 83,32 70,21 54,21 Z" />
+
+    <!-- Elegant Sparkle (AutoAwesome Star) on top of bubble -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 54,34 L 56.5,41.5 L 64,44 L 56.5,46.5 L 54,54 L 51.5,46.5 L 44,44 L 51.5,41.5 Z" />
+        
+    <!-- Micro companion golden dust sparkle -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M 66,35 L 67,38 L 70,39 L 67,40 L 66,43 L 65,40 L 62,39 L 65,38 Z" />
+</vector>
