@@ -41,7 +41,7 @@ class SettingsRepository(context: Context) {
     }
 
     fun getThemeColorDirect(): String {
-        return prefs.getString("theme_color", "blue").orEmpty()
+        return prefs.getString("theme_color", "monochrome").orEmpty()
     }
 
     fun saveThemeColor(colorName: String) {

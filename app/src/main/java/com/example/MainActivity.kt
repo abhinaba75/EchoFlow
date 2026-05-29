@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material.icons.Icons
@@ -85,91 +86,18 @@ fun MainNavigationHub(
 ) {
     var activeTab by remember { mutableStateOf("chat") }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val isWideScreen = maxWidth >= 600.dp
-
-        Scaffold(
-            bottomBar = {
-                if (!isWideScreen) {
-                    NavigationBar {
-                        NavigationBarItem(
-                            selected = activeTab == "chat",
-                            onClick = { activeTab = "chat" },
-                            label = { Text("Chat") },
-                            icon = {
-                                Icon(
-                                    imageVector = if (activeTab == "chat") Icons.Default.ChatBubble else Icons.Outlined.ChatBubbleOutline,
-                                    contentDescription = "Chat"
-                                )
-                            }
-                        )
-                        NavigationBarItem(
-                            selected = activeTab == "settings",
-                            onClick = { activeTab = "settings" },
-                            label = { Text("Settings") },
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.Default.Settings,
-                                    contentDescription = "Settings"
-                                )
-                            }
-                        )
-                    }
-                }
-            }
-        ) { padding ->
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-            ) {
-                if (isWideScreen) {
-                    NavigationRail(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                    ) {
-                        Spacer(modifier = Modifier.weight(1f))
-                        NavigationRailItem(
-                            selected = activeTab == "chat",
-                            onClick = { activeTab = "chat" },
-                            label = { Text("Chat") },
-                            icon = {
-                                Icon(
-                                    imageVector = if (activeTab == "chat") Icons.Default.ChatBubble else Icons.Outlined.ChatBubbleOutline,
-                                    contentDescription = "Chat"
-                                )
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        NavigationRailItem(
-                            selected = activeTab == "settings",
-                            onClick = { activeTab = "settings" },
-                            label = { Text("Settings") },
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.Default.Settings,
-                                    contentDescription = "Settings"
-                                )
-                            }
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
-
-                Box(modifier = Modifier.weight(1f)) {
-                    if (activeTab == "settings") {
-                        SettingsScreen(
-                            viewModel = settingsViewModel,
-                            onBackClicked = { activeTab = "chat" }
-                        )
-                    } else {
-                        AdaptiveChatWorkspace(
-                            chatViewModel = chatViewModel,
-                            settingsViewModel = settingsViewModel,
-                            onSettingsClicked = { activeTab = "settings" }
-                        )
-                    }
-                }
-            }
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (activeTab == "settings") {
+            SettingsScreen(
+                viewModel = settingsViewModel,
+                onBackClicked = { activeTab = "chat" }
+            )
+        } else {
+            AdaptiveChatWorkspace(
+                chatViewModel = chatViewModel,
+                settingsViewModel = settingsViewModel,
+                onSettingsClicked = { activeTab = "settings" }
+            )
         }
     }
 }
@@ -231,8 +159,9 @@ fun AdaptiveChatWorkspace(
                 drawerState = mobileDrawerState,
                 drawerContent = {
                     ModalDrawerSheet(
-                        drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        modifier = Modifier.widthIn(max = 290.dp)
+                        drawerContainerColor = Color.Transparent,
+                        drawerShape = androidx.compose.foundation.shape.RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
+                        modifier = Modifier.widthIn(max = 290.dp).padding(end = 0.dp)
                     ) {
                         ChatDrawerContent(
                             allThreads = allConversations,

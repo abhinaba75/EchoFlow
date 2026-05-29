@@ -2,12 +2,11 @@ package com.example.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -26,7 +25,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatDrawerContent(
     allThreads: List<ChatThread>,
@@ -41,25 +39,48 @@ fun ChatDrawerContent(
     var threadToRename by remember { mutableStateOf<ChatThread?>(null) }
     var threadToDelete by remember { mutableStateOf<ChatThread?>(null) }
 
-    // Dialog sheets
     if (threadToRename != null) {
-        RenameDialog(
-            thread = threadToRename!!,
-            onDismiss = { threadToRename = null },
-            onConfirm = { renameTitle ->
-                onRenameThread(threadToRename!!, renameTitle)
-                threadToRename = null
+        var renameText by remember { mutableStateOf(threadToRename!!.title) }
+        AlertDialog(
+            onDismissRequest = { threadToRename = null },
+            title = { Text("Rename conversation") },
+            text = {
+                OutlinedTextField(
+                    value = renameText,
+                    onValueChange = { renameText = it },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("rename_input_field")
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onRenameThread(threadToRename!!, renameText)
+                        threadToRename = null
+                    }
+                ) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { threadToRename = null }) { Text("Cancel") }
             }
         )
     }
 
     if (threadToDelete != null) {
-        DeleteConfirmDialog(
-            thread = threadToDelete!!,
-            onDismiss = { threadToDelete = null },
-            onConfirm = {
-                onDeleteThread(threadToDelete!!)
-                threadToDelete = null
+        AlertDialog(
+            onDismissRequest = { threadToDelete = null },
+            title = { Text("Delete conversation") },
+            text = { Text("Are you sure you want to delete this conversation? This cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteThread(threadToDelete!!)
+                        threadToDelete = null
+                    }
+                ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { threadToDelete = null }) { Text("Cancel") }
             }
         )
     }
@@ -67,9 +88,9 @@ fun ChatDrawerContent(
     Column(
         modifier = Modifier
             .fillMaxHeight()
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(16.dp)
-            .widthIn(max = 300.dp)
+            .widthIn(max = 280.dp)
             .windowInsetsPadding(WindowInsets.safeDrawing)
     ) {
         // App header
@@ -77,269 +98,111 @@ fun ChatDrawerContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.ChatBubble,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "OpenRouter",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                )
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onBackground),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Spa, null, tint = MaterialTheme.colorScheme.background, modifier = Modifier.size(16.dp))
             }
-
-            if (onCloseDrawer != null) {
-                IconButton(onClick = onCloseDrawer) {
-                    Icon(imageVector = Icons.Default.Close, contentDescription = "Close Drawer")
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // New Chat Button
-        Button(
-            onClick = {
-                onNewChatClicked()
-                onCloseDrawer?.invoke()
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .testTag("drawer_new_chat_button"),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            ),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Icon(imageVector = Icons.Default.Add, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = "New Conversation", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.width(12.dp))
+            Text("AVS Chat", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "Recents",
-            style = MaterialTheme.typography.titleSmall.copy(
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        // Threads Scroll list
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+        // New Chat Button
+        Surface(
+            onClick = {
+                onNewChatClicked()
+                onCloseDrawer?.invoke()
+            },
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+            modifier = Modifier.fillMaxWidth().testTag("drawer_new_chat_button")
         ) {
-            if (allThreads.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No saved histories yet.",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                            )
-                        )
-                    }
-                }
-            }
-
-            items(allThreads, key = { it.id }) { thread ->
-                val isSelected = thread.id == currentThreadId
-                
-                ListItem(
-                    headlineContent = {
-                        Text(
-                            text = thread.title,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            )
-                        )
-                    },
-                    supportingContent = {
-                        Text(
-                            text = formatTimestamp(thread.updatedAt),
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                    },
-                    leadingContent = {
-                        Icon(
-                            imageVector = if (isSelected) Icons.Default.ChatBubble else Icons.Default.ChatBubbleOutline,
-                            contentDescription = null,
-                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    },
-                    trailingContent = {
-                        Row {
-                            IconButton(
-                                onClick = { threadToRename = thread },
-                                modifier = Modifier.size(28.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Rename",
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            IconButton(
-                                onClick = { threadToDelete = thread },
-                                modifier = Modifier.size(28.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete",
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        }
-                    },
-                    colors = ListItemDefaults.colors(
-                        containerColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                        headlineColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
-                        supportingColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .combinedClickable(
-                            onClick = {
-                                onThreadSelected(thread.id)
-                                onCloseDrawer?.invoke()
-                            },
-                            onLongClick = {
-                                threadToRename = thread
-                            }
-                        )
-                )
+            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Add, null)
+                Spacer(modifier = Modifier.width(12.dp))
+                Text("New Conversation", fontWeight = FontWeight.Bold)
             }
         }
 
-        Divider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = "Conversations",
+            style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+            modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
+        )
 
-        // Nav Settings click
+        LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            items(allThreads, key = { it.id }) { thread ->
+                val isSelected = thread.id == currentThreadId
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            onThreadSelected(thread.id)
+                            onCloseDrawer?.invoke()
+                        }
+                        .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.ChatBubbleOutline, 
+                        contentDescription = null, 
+                        tint = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = thread.title,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    
+                    if (isSelected) {
+                        IconButton(onClick = { threadToRename = thread }, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Default.Edit, contentDescription = "Rename", modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha=0.7f))
+                        }
+                        IconButton(onClick = { threadToDelete = thread }, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+        // Settings 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .clickable {
                     onSettingsClicked()
                     onCloseDrawer?.invoke()
                 }
-                .padding(horizontal = 12.dp, vertical = 12.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.Settings,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Icon(Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "Addons & Settings",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            )
+            Text("Settings", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
         }
-    }
-}
-
-@Composable
-fun RenameDialog(
-    thread: ChatThread,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
-) {
-    var titleText by remember { mutableStateOf(thread.title) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = "Rename Conversation") },
-        text = {
-            OutlinedTextField(
-                value = titleText,
-                onValueChange = { titleText = it },
-                label = { Text(text = "Chat Title") },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("rename_input_field")
-            )
-        },
-        confirmButton = {
-            Button(
-                onClick = { onConfirm(titleText) },
-                enabled = titleText.trim().isNotEmpty()
-            ) {
-                Text(text = "Rename")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = "Cancel")
-            }
-        }
-    )
-}
-
-@Composable
-fun DeleteConfirmDialog(
-    thread: ChatThread,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = "Delete Conversation") },
-        text = {
-            Text(text = "Are you absolutely sure you want to delete \"${thread.title}\"? This operation is local and permanent.")
-        },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) {
-                Text(text = "Delete", color = MaterialTheme.colorScheme.onError)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = "Cancel")
-            }
-        }
-    )
-}
-
-fun formatTimestamp(timestamp: Long): String {
-    return try {
-        val sdf = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
-        sdf.format(Date(timestamp))
-    } catch (e: Exception) {
-        "Just now"
     }
 }

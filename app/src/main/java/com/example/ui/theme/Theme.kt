@@ -12,209 +12,240 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-// Blue Palettes
-private val BlueLight = lightColorScheme(
-    primary = Color(0xFF0F5CC0),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFD6E4FF),
-    onPrimaryContainer = Color(0xFF001A43),
-    secondary = Color(0xFF535F70),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFD7E3F8),
-    onSecondaryContainer = Color(0xFF101C2B),
-    background = Color(0xFFF9F9FF),
-    surface = Color(0xFFFAF9FD),
-    surfaceVariant = Color(0xFFE1E2EC),
-    onSurfaceVariant = Color(0xFF44464F)
-)
-private val BlueDark = darkColorScheme(
-    primary = Color(0xFFA9C7FF),
-    onPrimary = Color(0xFF002F66),
-    primaryContainer = Color(0xFF00458F),
-    onPrimaryContainer = Color(0xFFD6E4FF),
-    secondary = Color(0xFFBBC7DB),
-    onSecondary = Color(0xFF253141),
-    secondaryContainer = Color(0xFF3B4858),
-    onSecondaryContainer = Color(0xFFD7E3F8),
-    background = Color(0xFF111318),
-    surface = Color(0xFF111318),
-    surfaceVariant = Color(0xFF44464F),
-    onSurfaceVariant = Color(0xFFC5C6D0)
+// 1. Monochrome (Crisp Minimalist Space)
+private val MonochromeLight = lightColorScheme(
+    primary = Color(0xFF000000), 
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFF0F0F0),
+    onPrimaryContainer = Color(0xFF000000),
+    secondary = Color(0xFF555555),
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFEBEBEB),
+    onSecondaryContainer = Color(0xFF111111),
+    background = Color(0xFFFFFFFF), 
+    surface = Color(0xFFFFFFFF),
+    surfaceVariant = Color(0xFFF3F3F5),
+    onSurfaceVariant = Color(0xFF4A4A4D),
+    outline = Color(0xFFD6D6D9),
+    outlineVariant = Color(0xFFE5E5E8)
 )
 
-// Purple Palettes
-private val PurpleLight = lightColorScheme(
-    primary = Color(0xFF8634B5),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFF7D8FF),
-    onPrimaryContainer = Color(0xFF300049),
-    secondary = Color(0xFFEA1E63),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFFFD9E2),
-    onSecondaryContainer = Color(0xFF3F0013),
-    background = Color(0xFFFCF8FC),
-    surface = Color(0xFFFCF8FC),
-    surfaceVariant = Color(0xFFEADBEC),
-    onSurfaceVariant = Color(0xFF4C444D)
-)
-private val PurpleDark = darkColorScheme(
-    primary = Color(0xFFEAB2FF),
-    onPrimary = Color(0xFF51007A),
-    primaryContainer = Color(0xFF6B159B),
-    onPrimaryContainer = Color(0xFFF7D8FF),
-    secondary = Color(0xFFFFB2C0),
-    onSecondary = Color(0xFF650025),
-    secondaryContainer = Color(0xFF8E0038),
-    onSecondaryContainer = Color(0xFFFFD9E2),
-    background = Color(0xFF161217),
-    surface = Color(0xFF161217),
-    surfaceVariant = Color(0xFF4C444D),
-    onSurfaceVariant = Color(0xFFCECCD2)
+private val MonochromeDark = darkColorScheme(
+    primary = Color(0xFFFFFFFF), 
+    onPrimary = Color(0xFF000000),
+    primaryContainer = Color(0xFF333333),
+    onPrimaryContainer = Color(0xFFFFFFFF),
+    secondary = Color(0xFFAAAAAA),
+    onSecondary = Color(0xFF000000),
+    secondaryContainer = Color(0xFF2C2C2C),
+    onSecondaryContainer = Color(0xFFEBEBEB),
+    background = Color(0xFF09090B), 
+    onBackground = Color(0xFFF4F4F5),
+    surface = Color(0xFF18181A),
+    onSurface = Color(0xFFF4F4F5),
+    surfaceVariant = Color(0xFF27272A), 
+    onSurfaceVariant = Color(0xFFA1A1AA),
+    outline = Color(0xFF52525B),
+    outlineVariant = Color(0xFF3F3F46)
 )
 
-// Green Palettes
-private val GreenLight = lightColorScheme(
-    primary = Color(0xFF046D38),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFF9DF7B2),
+// 2. Ocean
+private val OceanLight = lightColorScheme(
+    primary = Color(0xFF005696), 
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFE0F0FF),
+    onPrimaryContainer = Color(0xFF001931),
+    secondary = Color(0xFF006782),
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFD1F4FF),
+    onSecondaryContainer = Color(0xFF001F29),
+    background = Color(0xFFF9FBFC), 
+    surface = Color(0xFFF9FBFC),
+    surfaceVariant = Color(0xFFE6EAEF),
+    onSurfaceVariant = Color(0xFF454b51),
+    outline = Color(0xFFC4CAD2),
+    outlineVariant = Color(0xFFD3DCE5)
+)
+private val OceanDark = darkColorScheme(
+    primary = Color(0xFF91CCFF), 
+    onPrimary = Color(0xFF00335C),
+    primaryContainer = Color(0xFF004981),
+    onPrimaryContainer = Color(0xFFD0E8FF),
+    secondary = Color(0xFF86D2F0),
+    onSecondary = Color(0xFF003546),
+    secondaryContainer = Color(0xFF004D65),
+    onSecondaryContainer = Color(0xFFC5E9F8),
+    background = Color(0xFF0D141A), 
+    onBackground = Color(0xFFE2E8F0),
+    surface = Color(0xFF0D141A),
+    onSurface = Color(0xFFE2E8F0),
+    surfaceVariant = Color(0xFF1C252C), 
+    onSurfaceVariant = Color(0xFF909fa8),
+    outline = Color(0xFF3B4856),
+    outlineVariant = Color(0xFF263341)
+)
+
+// 3. Forest
+private val ForestLight = lightColorScheme(
+    primary = Color(0xFF166B38),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFD9F4DD),
     onPrimaryContainer = Color(0xFF00210C),
-    secondary = Color(0xFF506352),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFD2E8D3),
-    onSecondaryContainer = Color(0xFF0D1F12),
-    background = Color(0xFFF6FBF5),
-    surface = Color(0xFFF6FBF5),
-    surfaceVariant = Color(0xFFDDE5DB),
-    onSurfaceVariant = Color(0xFF414942)
+    secondary = Color(0xFF4D6352),
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFCFE9D3),
+    onSecondaryContainer = Color(0xFF092011),
+    background = Color(0xFFFAFDF9),
+    surface = Color(0xFFFAFDF9),
+    surfaceVariant = Color(0xFFDEE5DD),
+    onSurfaceVariant = Color(0xFF424942),
+    outline = Color(0xFFC2C9C1),
+    outlineVariant = Color(0xFFD4DFD3)
 )
-private val GreenDark = darkColorScheme(
-    primary = Color(0xFF82DA98),
+private val ForestDark = darkColorScheme(
+    primary = Color(0xFF8FD8A2),
     onPrimary = Color(0xFF00391B),
     primaryContainer = Color(0xFF005229),
-    onPrimaryContainer = Color(0xFF9DF7B2),
-    secondary = Color(0xFFB7CCB7),
-    onSecondary = Color(0xFF233426),
-    secondaryContainer = Color(0xFF394B3C),
-    onSecondaryContainer = Color(0xFFD2E8D3),
-    background = Color(0xFF0F1511),
-    surface = Color(0xFF0F1511),
-    surfaceVariant = Color(0xFF414942),
-    onSurfaceVariant = Color(0xFFC1C9BF)
+    onPrimaryContainer = Color(0xFFABF5BD),
+    secondary = Color(0xFFB3CCB7),
+    onSecondary = Color(0xFF1F3526),
+    secondaryContainer = Color(0xFF354B3B),
+    onSecondaryContainer = Color(0xFFCFE9D3),
+    background = Color(0xFF111411),
+    onBackground = Color(0xFFE1E5E1),
+    surface = Color(0xFF111411),
+    onSurface = Color(0xFFE1E5E1),
+    surfaceVariant = Color(0xFF212722),
+    onSurfaceVariant = Color(0xFFC1C9BF),
+    outline = Color(0xFF465046),
+    outlineVariant = Color(0xFF2B332B)
 )
 
-// Orange Palettes
-private val OrangeLight = lightColorScheme(
-    primary = Color(0xFF904E00),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFFFDCC0),
-    onPrimaryContainer = Color(0xFF2E1500),
-    secondary = Color(0xFF825515),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFFFDDB1),
-    onSecondaryContainer = Color(0xFF2A1700),
-    background = Color(0xFFFFF8F5),
-    surface = Color(0xFFFFF8F5),
-    surfaceVariant = Color(0xFFF4E0D4),
-    onSurfaceVariant = Color(0xFF52443C)
+// 4. Sunset
+private val SunsetLight = lightColorScheme(
+    primary = Color(0xFF8E4E00),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFFFE0CA),
+    onPrimaryContainer = Color(0xFF2D1600),
+    secondary = Color(0xFF755845),
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFFFDCC5),
+    onSecondaryContainer = Color(0xFF2A1708),
+    background = Color(0xFFFCFAF8),
+    surface = Color(0xFFFCFAF8),
+    surfaceVariant = Color(0xFFEBE1D9),
+    onSurfaceVariant = Color(0xFF4C4640),
+    outline = Color(0xFFCEC4BE),
+    outlineVariant = Color(0xFFDFD1C7)
 )
-private val OrangeDark = darkColorScheme(
-    primary = Color(0xFFFFB774),
-    onPrimary = Color(0xFF4D2700),
-    primaryContainer = Color(0xFF6E3A00),
-    onPrimaryContainer = Color(0xFFFFDCC0),
-    secondary = Color(0xFFFAB970),
-    onSecondary = Color(0xFF472A00),
-    secondaryContainer = Color(0xFF643F04),
-    onSecondaryContainer = Color(0xFFFFDDB1),
-    background = Color(0xFF17130F),
-    surface = Color(0xFF17130F),
-    surfaceVariant = Color(0xFF52443C),
-    onSurfaceVariant = Color(0xFFD7C3B7)
-)
-
-// Pink Palettes
-private val PinkLight = lightColorScheme(
-    primary = Color(0xFF9E2A5D),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFFFD9E4),
-    onPrimaryContainer = Color(0xFF3E0020),
-    secondary = Color(0xFF745661),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFFFD9E4),
-    onSecondaryContainer = Color(0xFF2B151F),
-    background = Color(0xFFFFF8F8),
-    surface = Color(0xFFFFF8F8),
-    surfaceVariant = Color(0xFFF2DDE2),
-    onSurfaceVariant = Color(0xFF514347)
-)
-private val PinkDark = darkColorScheme(
-    primary = Color(0xFFFFB0CB),
-    onPrimary = Color(0xFF610034),
-    primaryContainer = Color(0xFF7F0F46),
-    onPrimaryContainer = Color(0xFFFFD9E4),
-    secondary = Color(0xFFE2BDCB),
-    onSecondary = Color(0xFF422933),
-    secondaryContainer = Color(0xFF5B3E4A),
-    onSecondaryContainer = Color(0xFFFFD9E4),
-    background = Color(0xFF171214),
-    surface = Color(0xFF171214),
-    surfaceVariant = Color(0xFF514347),
-    onSurfaceVariant = Color(0xFFD6C2C6)
+private val SunsetDark = darkColorScheme(
+    primary = Color(0xFFFFB781),
+    onPrimary = Color(0xFF4C2700),
+    primaryContainer = Color(0xFF6C3A00),
+    onPrimaryContainer = Color(0xFFFFDCC4),
+    secondary = Color(0xFFE5C0A9),
+    onSecondary = Color(0xFF422B1A),
+    secondaryContainer = Color(0xFF5B4130),
+    onSecondaryContainer = Color(0xFFFFDCC5),
+    background = Color(0xFF161311),
+    onBackground = Color(0xFFE6E0DD),
+    surface = Color(0xFF161311),
+    onSurface = Color(0xFFE6E0DD),
+    surfaceVariant = Color(0xFF2A231F),
+    onSurfaceVariant = Color(0xFFD6C2B7),
+    outline = Color(0xFF544A43),
+    outlineVariant = Color(0xFF3D322B)
 )
 
-// Neutral Palettes
-private val NeutralLight = lightColorScheme(
-    primary = Color(0xFF4F5F6B),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFD3E4F2),
-    onPrimaryContainer = Color(0xFF0B1C26),
-    secondary = Color(0xFF575F65),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFDBE3E9),
-    onSecondaryContainer = Color(0xFF141C21),
-    background = Color(0xFFF8F9FA),
-    surface = Color(0xFFF8F9FA),
-    surfaceVariant = Color(0xFFE0E2E5),
-    onSurfaceVariant = Color(0xFF43474A)
+// 5. Lavender
+private val LavenderLight = lightColorScheme(
+    primary = Color(0xFF6750A4),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFEADDFF),
+    onPrimaryContainer = Color(0xFF21005D),
+    secondary = Color(0xFF625B71),
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFE8DEF8),
+    onSecondaryContainer = Color(0xFF1D192B),
+    background = Color(0xFFFDFBFD),
+    surface = Color(0xFFFDFBFD),
+    surfaceVariant = Color(0xFFE7E0EC),
+    onSurfaceVariant = Color(0xFF49454F),
+    outline = Color(0xFFCAC4D0),
+    outlineVariant = Color(0xFFD9D3E0)
 )
-private val NeutralDark = darkColorScheme(
-    primary = Color(0xFFB7C8D5),
-    onPrimary = Color(0xFF21323E),
-    primaryContainer = Color(0xFF384854),
-    onPrimaryContainer = Color(0xFFD3E4F2),
-    secondary = Color(0xFFBFC7CD),
-    onSecondary = Color(0xFF293136),
-    secondaryContainer = Color(0xFF3F474C),
-    onSecondaryContainer = Color(0xFFDBE3E9),
-    background = Color(0xFF1A1C1E),
-    surface = Color(0xFF1A1C1E),
-    surfaceVariant = Color(0xFF43474A),
-    onSurfaceVariant = Color(0xFFC3C7CA)
+private val LavenderDark = darkColorScheme(
+    primary = Color(0xFFD0BCFF),
+    onPrimary = Color(0xFF381E72),
+    primaryContainer = Color(0xFF4F378B),
+    onPrimaryContainer = Color(0xFFEADDFF),
+    secondary = Color(0xFFCCC2DC),
+    onSecondary = Color(0xFF332D41),
+    secondaryContainer = Color(0xFF4A4458),
+    onSecondaryContainer = Color(0xFFE8DEF8),
+    background = Color(0xFF141216),
+    onBackground = Color(0xFFE5E1E6),
+    surface = Color(0xFF141216),
+    onSurface = Color(0xFFE5E1E6),
+    surfaceVariant = Color(0xFF242229),
+    onSurfaceVariant = Color(0xFFCAC4D0),
+    outline = Color(0xFF49454F),
+    outlineVariant = Color(0xFF322E3A)
+)
+
+// 6. Rose
+private val RoseLight = lightColorScheme(
+    primary = Color(0xFF904256),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFFFD9DF),
+    onPrimaryContainer = Color(0xFF3A0015),
+    secondary = Color(0xFF75565D),
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFFFD9E0),
+    onSecondaryContainer = Color(0xFF2C151A),
+    background = Color(0xFFFCFAFA),
+    surface = Color(0xFFFCFAFA),
+    surfaceVariant = Color(0xFFEBE0E2),
+    onSurfaceVariant = Color(0xFF4C4446),
+    outline = Color(0xFFCFC4C5),
+    outlineVariant = Color(0xFFE0D2D5)
+)
+private val RoseDark = darkColorScheme(
+    primary = Color(0xFFFFB1C2),
+    onPrimary = Color(0xFF561429),
+    primaryContainer = Color(0xFF722B3F),
+    onPrimaryContainer = Color(0xFFFFD9DF),
+    secondary = Color(0xFFE4BDC4),
+    onSecondary = Color(0xFF432930),
+    secondaryContainer = Color(0xFF5C3F46),
+    onSecondaryContainer = Color(0xFFFFD9E0),
+    background = Color(0xFF171213),
+    onBackground = Color(0xFFE6E1E2),
+    surface = Color(0xFF171213),
+    onSurface = Color(0xFFE6E1E2),
+    surfaceVariant = Color(0xFF2B2224),
+    onSurfaceVariant = Color(0xFFD6C2C5),
+    outline = Color(0xFF544A4D),
+    outlineVariant = Color(0xFF3B2E32)
 )
 
 @Composable
 fun MyApplicationTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    themeName: String = "blue",
+    themeName: String = "monochrome",
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
     val supportsDynamic = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
-    val colorScheme: ColorScheme = when (themeName.lowercase()) {
-        "dynamic" -> {
-            if (supportsDynamic) {
-                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            } else {
-                if (darkTheme) BlueDark else BlueLight
-            }
-        }
-        "purple" -> if (darkTheme) PurpleDark else PurpleLight
-        "green" -> if (darkTheme) GreenDark else GreenLight
-        "orange" -> if (darkTheme) OrangeDark else OrangeLight
-        "pink" -> if (darkTheme) PinkDark else PinkLight
-        "neutral" -> if (darkTheme) NeutralDark else NeutralLight
-        else -> if (darkTheme) BlueDark else BlueLight // default to Blue
+    val colorScheme = when {
+        themeName == "dynamic" && supportsDynamic -> if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        themeName == "ocean" -> if (darkTheme) OceanDark else OceanLight
+        themeName == "forest" -> if (darkTheme) ForestDark else ForestLight
+        themeName == "sunset" -> if (darkTheme) SunsetDark else SunsetLight
+        themeName == "lavender" -> if (darkTheme) LavenderDark else LavenderLight
+        themeName == "rose" -> if (darkTheme) RoseDark else RoseLight
+        else -> if (darkTheme) MonochromeDark else MonochromeLight // monochrome is default
     }
 
     MaterialTheme(

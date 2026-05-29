@@ -1,6 +1,6 @@
 {
-  "name": "OpenRouter Chat",
-  "description": "Local offline-first AI chat client powered by OpenRouter API, Room database, and full customization.",
+  "name": "AVS Chat",
+  "description": "Premium Material 3 AI Chat Client powered by OpenRouter API, styled with expressive design language and local persistence.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
