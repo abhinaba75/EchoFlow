@@ -122,7 +122,7 @@ fun AdaptiveChatWorkspace(
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .width(280.dp)
+                        .width(320.dp)
                 ) {
                     ChatDrawerContent(
                         allThreads = allConversations,
@@ -135,10 +135,8 @@ fun AdaptiveChatWorkspace(
                     )
                 }
 
-                Divider(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(1.dp),
+                VerticalDivider(
+                    modifier = Modifier.fillMaxHeight(),
                     color = MaterialTheme.colorScheme.outlineVariant
                 )
 
@@ -159,9 +157,9 @@ fun AdaptiveChatWorkspace(
                 drawerState = mobileDrawerState,
                 drawerContent = {
                     ModalDrawerSheet(
-                        drawerContainerColor = Color.Transparent,
-                        drawerShape = androidx.compose.foundation.shape.RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
-                        modifier = Modifier.widthIn(max = 290.dp).padding(end = 0.dp)
+                        drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        drawerShape = androidx.compose.foundation.shape.RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp),
+                        modifier = Modifier.widthIn(max = 340.dp)
                     ) {
                         ChatDrawerContent(
                             allThreads = allConversations,

@@ -41,7 +41,9 @@ class SettingsRepository(context: Context) {
     }
 
     fun getThemeColorDirect(): String {
-        return prefs.getString("theme_color", "monochrome").orEmpty()
+        // Default to Material You wallpaper-sampled dynamic color; Theme.kt falls back to the
+        // monochrome palette automatically on devices older than Android 12.
+        return prefs.getString("theme_color", "dynamic").orEmpty()
     }
 
     fun saveThemeColor(colorName: String) {

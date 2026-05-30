@@ -1,264 +1,303 @@
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
+
 package com.example.ui.screens
 
+import android.os.Build
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.ui.SettingsViewModel
+import com.example.ui.components.GroupedItemGap
+import com.example.ui.components.groupedItemShape
+import com.example.ui.theme.BrandShapes
+import com.example.ui.theme.RoundedPolygonShape
+import com.example.ui.theme.Spacing
 
-@OptIn(ExperimentalMaterial3Api::class)
+private data class Accent(val id: String, val label: String, val swatch: Color)
+
+private val accents = listOf(
+    Accent("monochrome", "Mono", Color(0xFF1B1B1F)),
+    Accent("ocean", "Ocean", Color(0xFF1660A8)),
+    Accent("forest", "Forest", Color(0xFF1C6E2E)),
+    Accent("sunset", "Sunset", Color(0xFF9A4500)),
+    Accent("lavender", "Lavender", Color(0xFF6750A4)),
+    Accent("rose", "Rose", Color(0xFFB01B49)),
+)
+
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
-    onBackClicked: () -> Unit
+    onBackClicked: () -> Unit,
 ) {
     val apiKey by viewModel.apiKey.collectAsState()
-    val darkModeSec by viewModel.darkMode.collectAsState()
-    val customModelsList by viewModel.customModels.collectAsState()
+    val darkMode by viewModel.darkMode.collectAsState()
+    val themeColor by viewModel.themeColor.collectAsState()
+    val customModels by viewModel.customModels.collectAsState()
 
     var keyInput by remember(apiKey) { mutableStateOf(apiKey) }
     var keyVisible by remember { mutableStateOf(false) }
-    var modelIdInput by remember { mutableStateOf("") }
-    var modelNameInput by remember { mutableStateOf("") }
+    var modelId by remember { mutableStateOf("") }
+    var modelName by remember { mutableStateOf("") }
+
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
-            TopAppBar(
-                title = { Text("Settings", fontWeight = FontWeight.SemiBold) },
+            LargeTopAppBar(
+                title = { Text("Settings") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClicked) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Return Chat")
-                    }
+                    FilledTonalIconButton(onClick = onBackClicked) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface,
+                ),
             )
         },
-        containerColor = Color.Transparent
     ) { pad ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    androidx.compose.ui.graphics.Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                        )
-                    )
-                )
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(pad),
+            contentPadding = PaddingValues(horizontal = Spacing.base, vertical = Spacing.s),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xl),
         ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(pad),
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(32.dp)
-            ) {
-            // Appearance Section
+            // ── Appearance ────────────────────────────────────────────────────────────────
             item {
-                SectionHeader("Appearance")
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 2.dp,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha=0.5f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Light / Dark Theme", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
-                        Spacer(Modifier.height(16.dp))
-                        
-                        val modes = listOf("system" to "System", "light" to "Light", "dark" to "Dark")
-                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                            modes.forEachIndexed { index, (modeValue, modeLabel) ->
-                                SegmentedButton(
-                                    selected = darkModeSec == modeValue,
-                                    onClick = { viewModel.saveDarkMode(modeValue) },
-                                    shape = SegmentedButtonDefaults.itemShape(index = index, count = modes.size)
-                                ) {
-                                    Text(modeLabel)
-                                }
-                            }
-                        }
-
-                        Spacer(Modifier.height(24.dp))
-                        Text("Accent Color", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
-                        Spacer(Modifier.height(16.dp))
-                        
-                        val currentTheme = viewModel.themeColor.collectAsState().value
-                        var expandedThemeMenu by remember { mutableStateOf(false) }
-                        val themeOptions = listOf(
-                            "monochrome" to "Monochrome (Space)",
-                            "ocean" to "Ocean (Blue)",
-                            "forest" to "Forest (Green)",
-                            "sunset" to "Sunset (Orange)",
-                            "lavender" to "Lavender (Purple)",
-                            "rose" to "Rose (Pink)"
+                Column {
+                    SettingsSectionHeader(Icons.Default.Palette, "Appearance", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+                    SettingsCard {
+                        Text("Theme", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.height(Spacing.m))
+                        SegmentedToggle(
+                            options = listOf("system" to "System", "light" to "Light", "dark" to "Dark"),
+                            selected = darkMode,
+                            onSelect = viewModel::saveDarkMode,
                         )
-                        val selectedThemeLabel = themeOptions.firstOrNull { it.first == currentTheme }?.second ?: "Monochrome"
-                        
-                        ExposedDropdownMenuBox(
-                            expanded = expandedThemeMenu,
-                            onExpandedChange = { expandedThemeMenu = !expandedThemeMenu }
+                        Spacer(Modifier.height(Spacing.l))
+                        Text("Accent color", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.height(Spacing.m))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.base),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.base),
                         ) {
-                            OutlinedTextField(
-                                value = selectedThemeLabel,
-                                onValueChange = {},
-                                readOnly = true,
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedThemeMenu) },
-                                modifier = Modifier.fillMaxWidth().menuAnchor()
-                            )
-                            ExposedDropdownMenu(
-                                expanded = expandedThemeMenu,
-                                onDismissRequest = { expandedThemeMenu = false }
-                            ) {
-                                themeOptions.forEach { option ->
-                                    DropdownMenuItem(
-                                        text = { Text(option.second) },
-                                        onClick = {
-                                            viewModel.saveThemeColor(option.first)
-                                            expandedThemeMenu = false
-                                        }
-                                    )
-                                }
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                WallpaperSwatch(selected = themeColor == "dynamic") { viewModel.saveThemeColor("dynamic") }
+                            }
+                            accents.forEach { accent ->
+                                AccentSwatch(accent, selected = themeColor == accent.id) { viewModel.saveThemeColor(accent.id) }
                             }
                         }
                     }
                 }
             }
 
-            // API Section
+            // ── OpenRouter API ────────────────────────────────────────────────────────────
             item {
-                SectionHeader("OpenRouter API")
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 2.dp,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha=0.5f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("API Key", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
-                        Spacer(Modifier.height(8.dp))
+                Column {
+                    SettingsSectionHeader(Icons.Default.Key, "OpenRouter API", MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
+                    SettingsCard {
+                        Text("API key", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.height(Spacing.s))
                         OutlinedTextField(
                             value = keyInput,
                             onValueChange = { keyInput = it },
-                            placeholder = { Text("sk-or-v1-...") },
+                            placeholder = { Text("sk-or-v1-…") },
                             singleLine = true,
+                            shape = MaterialTheme.shapes.medium,
                             visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
                             trailingIcon = {
                                 IconButton(onClick = { keyVisible = !keyVisible }) {
-                                    Icon(if (keyVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, null)
+                                    Icon(if (keyVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, if (keyVisible) "Hide" else "Show")
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        Button(
-                            onClick = { viewModel.saveApiKey(keyInput.trim()) },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Save Key")
+                        )
+                        Spacer(Modifier.height(Spacing.m))
+                        Button(onClick = { viewModel.saveApiKey(keyInput.trim()) }, shape = CircleShape, modifier = Modifier.fillMaxWidth()) {
+                            Text("Save key")
                         }
                     }
                 }
             }
 
-            // Custom Models Section
+            // ── Models ────────────────────────────────────────────────────────────────────
             item {
-                SectionHeader("Models")
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 2.dp,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha=0.5f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Add Custom Model", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
-                        Spacer(Modifier.height(8.dp))
+                Column {
+                    SettingsSectionHeader(Icons.Default.Add, "Models", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer)
+                    SettingsCard {
+                        Text("Add a custom model", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.height(Spacing.s))
                         OutlinedTextField(
-                            value = modelIdInput,
-                            onValueChange = { modelIdInput = it },
-                            label = { Text("Model ID") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
+                            value = modelId, onValueChange = { modelId = it },
+                            label = { Text("Model ID") }, singleLine = true,
+                            shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth(),
                         )
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(Spacing.s))
                         OutlinedTextField(
-                            value = modelNameInput,
-                            onValueChange = { modelNameInput = it },
-                            label = { Text("Display Name") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
+                            value = modelName, onValueChange = { modelName = it },
+                            label = { Text("Display name") }, singleLine = true,
+                            shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth(),
                         )
-                        Spacer(Modifier.height(12.dp))
-                        Button(
+                        Spacer(Modifier.height(Spacing.m))
+                        FilledTonalButton(
                             onClick = {
-                                if (modelIdInput.trim().isNotEmpty()) {
-                                    viewModel.addCustomModel(modelIdInput.trim(), modelNameInput.trim())
-                                    modelIdInput = ""
-                                    modelNameInput = ""
-                                }
+                                if (modelId.trim().isNotEmpty()) { viewModel.addCustomModel(modelId.trim(), modelName.trim()); modelId = ""; modelName = "" }
                             },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = CircleShape, modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text("Add Custom Model")
+                            Icon(Icons.Default.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(Spacing.s)); Text("Add model")
                         }
                     }
                 }
             }
 
-            if (customModelsList.isNotEmpty()) {
-                items(customModelsList) { customModel ->
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        shadowElevation = 2.dp,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha=0.5f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(customModel.name, fontWeight = FontWeight.Bold)
-                                Text(customModel.id, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            IconButton(onClick = { viewModel.deleteCustomModel(customModel.id) }) {
-                                Icon(Icons.Default.DeleteOutline, null, tint = MaterialTheme.colorScheme.error)
+            if (customModels.isNotEmpty()) {
+                item {
+                    Column {
+                        SettingsSectionHeader(Icons.Default.Memory, "Your models", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer)
+                        Column(verticalArrangement = Arrangement.spacedBy(GroupedItemGap)) {
+                            customModels.forEachIndexed { index, model ->
+                                Surface(
+                                    shape = groupedItemShape(index, customModels.size),
+                                    color = MaterialTheme.colorScheme.surfaceContainer,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Row(Modifier.padding(start = Spacing.base, end = Spacing.s, top = Spacing.m, bottom = Spacing.m), verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            Modifier.size(40.dp).clip(RoundedPolygonShape(BrandShapes.avatarStart)).background(MaterialTheme.colorScheme.tertiaryContainer),
+                                            contentAlignment = Alignment.Center,
+                                        ) { Icon(Icons.Default.Memory, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer) }
+                                        Spacer(Modifier.width(Spacing.base))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(model.name, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+                                            Text(model.id, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                        IconButton(onClick = { viewModel.deleteCustomModel(model.id) }) {
+                                            Icon(Icons.Default.DeleteOutline, "Delete", tint = MaterialTheme.colorScheme.error)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
-        }
+
+            item { Spacer(Modifier.height(Spacing.xl)) }
         }
     }
 }
 
 @Composable
-fun SectionHeader(title: String) {
-    Text(
-        text = title.uppercase(),
-        style = MaterialTheme.typography.labelMedium.copy(
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Bold
-        ),
-        modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
-    )
+private fun SettingsSectionHeader(icon: ImageVector, title: String, container: Color, onContainer: Color) {
+    Row(
+        Modifier.padding(start = Spacing.xs, bottom = Spacing.m, top = Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier.size(34.dp).clip(RoundedPolygonShape(BrandShapes.avatarStart)).background(container),
+            contentAlignment = Alignment.Center,
+        ) { Icon(icon, null, Modifier.size(18.dp), tint = onContainer) }
+        Spacer(Modifier.width(Spacing.m))
+        Text(title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+    }
+}
+
+@Composable
+private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(Spacing.l), content = content)
+    }
+}
+
+/** Custom connected segmented control — the M3 Expressive replacement for segmented buttons. */
+@Composable
+private fun SegmentedToggle(options: List<Pair<String, String>>, selected: String, onSelect: (String) -> Unit) {
+    Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHighest, modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(Spacing.xs), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            options.forEach { (value, label) ->
+                val isSel = value == selected
+                Surface(
+                    onClick = { onSelect(value) },
+                    shape = CircleShape,
+                    color = if (isSel) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.titleSmall,
+                        textAlign = TextAlign.Center,
+                        color = if (isSel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.m),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccentSwatch(accent: Accent, selected: Boolean, onClick: () -> Unit) {
+    val shape = RoundedPolygonShape(BrandShapes.avatarStart)
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier.size(52.dp).clip(shape).background(accent.swatch)
+                .then(if (selected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, shape) else Modifier)
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) { if (selected) Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(24.dp)) }
+        Spacer(Modifier.height(Spacing.xs))
+        Text(accent.label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun WallpaperSwatch(selected: Boolean, onClick: () -> Unit) {
+    val shape = RoundedPolygonShape(BrandShapes.heroStart)
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier.size(52.dp).clip(shape).background(MaterialTheme.colorScheme.primaryContainer)
+                .then(if (selected) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, shape) else Modifier)
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                if (selected) Icons.Default.Check else Icons.Default.Palette, "Wallpaper colors",
+                tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(24.dp),
+            )
+        }
+        Spacer(Modifier.height(Spacing.xs))
+        Text("Wallpaper", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+    }
 }
