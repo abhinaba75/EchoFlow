@@ -231,16 +231,15 @@ fun CodeBlockItem(code: String, language: String?) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         Column {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
