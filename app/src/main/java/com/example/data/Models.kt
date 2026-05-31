@@ -31,6 +31,7 @@ data class ChatMessage(
     val role: String, // "user", "assistant", "system"
     val content: String,
     val createdAt: Long,
+    val reasoning: String? = null, // reasoning/"thinking" trace for reasoning-capable models
     val localAttachmentUri: String? = null,
     val localAttachmentMimeType: String? = null,
     val localAttachmentName: String? = null

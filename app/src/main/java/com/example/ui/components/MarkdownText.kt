@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,53 +40,48 @@ fun MarkdownText(
     textColor: Color = MaterialTheme.colorScheme.onSurface,
     style: TextStyle = MaterialTheme.typography.bodyLarge
 ) {
+    // Parsing is memoized on `text`, and every block is a child composable that takes only stable
+    // String params — so Compose skips re-rendering unchanged blocks. During streaming this means
+    // only the final, still-growing block re-renders each frame (production-grade incremental MD).
+    val blocks = remember(text) { parseMarkdownBlocks(text) }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        val blocks = parseMarkdownBlocks(text)
         for (block in blocks) {
             when (block) {
-                is MarkdownBlock.Header -> {
-                    Text(
-                        text = parseInlineStyles(block.text, textColor),
-                        style = when (block.level) {
-                            1 -> MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, color = textColor)
-                            2 -> MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, color = textColor)
-                            else -> MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = textColor)
-                        },
-                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
-                    )
-                }
-                is MarkdownBlock.CodeBlock -> {
-                    CodeBlockItem(code = block.code, language = block.language)
-                }
-                is MarkdownBlock.BulletItem -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(start = 8.dp),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Text(
-                            text = "• ",
-                            style = style.copy(fontWeight = FontWeight.Bold, color = textColor),
-                            modifier = Modifier.width(16.dp)
-                        )
-                        SelectionContainer {
-                            Text(
-                                text = parseInlineStyles(block.text, textColor),
-                                style = style.copy(color = textColor),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-                is MarkdownBlock.Paragraph -> {
-                    SelectionContainer {
-                        Text(
-                            text = parseInlineStyles(block.text, textColor),
-                            style = style.copy(color = textColor),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
+                is MarkdownBlock.Header -> MdHeader(block.text, block.level, textColor)
+                is MarkdownBlock.CodeBlock -> CodeBlockItem(code = block.code, language = block.language)
+                is MarkdownBlock.BulletItem -> MdBullet(block.text, textColor, style)
+                is MarkdownBlock.Paragraph -> MdParagraph(block.text, textColor, style)
             }
+        }
+    }
+}
+
+@Composable
+private fun MdHeader(text: String, level: Int, color: Color) {
+    val annotated = remember(text, color) { parseInlineStyles(text, color) }
+    val base = when (level) {
+        1 -> MaterialTheme.typography.headlineMedium
+        2 -> MaterialTheme.typography.titleLarge
+        else -> MaterialTheme.typography.titleMedium
+    }
+    Text(annotated, style = base.copy(fontWeight = FontWeight.Bold, color = color), modifier = Modifier.padding(top = 4.dp, bottom = 2.dp))
+}
+
+@Composable
+private fun MdParagraph(text: String, color: Color, style: TextStyle) {
+    val annotated = remember(text, color) { parseInlineStyles(text, color) }
+    SelectionContainer {
+        Text(annotated, style = style.copy(color = color), modifier = Modifier.fillMaxWidth())
+    }
+}
+
+@Composable
+private fun MdBullet(text: String, color: Color, style: TextStyle) {
+    val annotated = remember(text, color) { parseInlineStyles(text, color) }
+    Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.Top) {
+        Text("• ", style = style.copy(fontWeight = FontWeight.Bold, color = color), modifier = Modifier.width(16.dp))
+        SelectionContainer {
+            Text(annotated, style = style.copy(color = color), modifier = Modifier.weight(1f))
         }
     }
 }

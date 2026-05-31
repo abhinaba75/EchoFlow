@@ -54,6 +54,9 @@ class ChatViewModel(
     private val _activeStreamingBuffer = MutableStateFlow("")
     val activeStreamingBuffer: StateFlow<String> = _activeStreamingBuffer.asStateFlow()
 
+    private val _activeReasoningBuffer = MutableStateFlow("")
+    val activeReasoningBuffer: StateFlow<String> = _activeReasoningBuffer.asStateFlow()
+
     private val _apiProgressLoading = MutableStateFlow(false)
     val apiProgressLoading: StateFlow<Boolean> = _apiProgressLoading.asStateFlow()
 
@@ -198,15 +201,25 @@ class ChatViewModel(
             // Begin Streaming Assistant response
             _isStreaming.value = true
             _activeStreamingBuffer.value = ""
+            _activeReasoningBuffer.value = ""
             _apiProgressLoading.value = true // Show leading load before tokens stream
 
             var accumulatedResponse = ""
+            var accumulatedReasoning = ""
             try {
                 openRouterService.sendChatMessageStream(apiKey, selectedModel, fullHistory)
                     .collect { chunk ->
                         _apiProgressLoading.value = false // Dismiss initial load as stream flows
-                        accumulatedResponse += chunk
-                        _activeStreamingBuffer.value = accumulatedResponse
+                        when (chunk) {
+                            is StreamChunk.Reasoning -> {
+                                accumulatedReasoning += chunk.text
+                                _activeReasoningBuffer.value = accumulatedReasoning
+                            }
+                            is StreamChunk.Content -> {
+                                accumulatedResponse += chunk.text
+                                _activeStreamingBuffer.value = accumulatedResponse
+                            }
+                        }
                     }
 
                 // If content streamed, write to local db
@@ -216,7 +229,8 @@ class ChatViewModel(
                         chatId = chatId,
                         role = "assistant",
                         content = accumulatedResponse,
-                        createdAt = System.currentTimeMillis()
+                        createdAt = System.currentTimeMillis(),
+                        reasoning = accumulatedReasoning.ifBlank { null }
                     )
                     messageDao.insertMessage(assistantMsg)
 
@@ -236,13 +250,15 @@ class ChatViewModel(
                         chatId = chatId,
                         role = "assistant",
                         content = "$accumulatedResponse\n\n*[Connection lost: ${e.message}]*",
-                        createdAt = System.currentTimeMillis()
+                        createdAt = System.currentTimeMillis(),
+                        reasoning = accumulatedReasoning.ifBlank { null }
                     )
                     messageDao.insertMessage(assistantMsg)
                 }
             } finally {
                 _isStreaming.value = false
                 _activeStreamingBuffer.value = ""
+                _activeReasoningBuffer.value = ""
                 _apiProgressLoading.value = false
             }
         }

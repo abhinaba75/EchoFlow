@@ -14,6 +14,8 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -31,6 +33,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -69,6 +72,7 @@ fun ChatScreen(
     val messages by chatViewModel.currentMessages.collectAsState()
     val isStreaming by chatViewModel.isStreaming.collectAsState()
     val streamingBuffer by chatViewModel.activeStreamingBuffer.collectAsState()
+    val reasoningBuffer by chatViewModel.activeReasoningBuffer.collectAsState()
     val progressLoading by chatViewModel.apiProgressLoading.collectAsState()
     val errorMessage by chatViewModel.errorMessage.collectAsState()
 
@@ -111,11 +115,24 @@ fun ChatScreen(
     LaunchedEffect(atBottom, listState.isScrollInProgress) {
         if (listState.isScrollInProgress) autoFollow = atBottom
     }
-    // Snap (not animate) to the very bottom on new content while following — smooth, no fighting.
-    LaunchedEffect(messages.size, streamingBuffer, progressLoading) {
+    // Pin to bottom on discrete events (new message sent, thinking row appears).
+    LaunchedEffect(messages.size, progressLoading) {
         if (autoFollow) {
             val idx = listState.layoutInfo.totalItemsCount - 1
             if (idx >= 0) runCatching { listState.scrollToItem(idx, Int.MAX_VALUE) }
+        }
+    }
+    // While generating, keep the bottom pinned every frame so the smooth text reveal stays in view
+    // — but skip frames where the user is actively scrolling, so manual scroll-up isn't fought.
+    LaunchedEffect(autoFollow, isStreaming, progressLoading) {
+        if (autoFollow && (isStreaming || progressLoading)) {
+            while (true) {
+                withFrameNanos { it }
+                if (!listState.isScrollInProgress) {
+                    val idx = listState.layoutInfo.totalItemsCount - 1
+                    if (idx >= 0) runCatching { listState.scrollToItem(idx, Int.MAX_VALUE) }
+                }
+            }
         }
     }
 
@@ -155,10 +172,13 @@ fun ChatScreen(
                         items(messages, key = { it.id }) { msg ->
                             MessageBubble(msg) { clipboard.setText(AnnotatedString(msg.content)) }
                         }
-                        if (progressLoading && streamingBuffer.isEmpty()) item { ThinkingRow() }
-                        if (streamingBuffer.isNotEmpty()) item(key = "streaming") {
+                        if (progressLoading && streamingBuffer.isEmpty() && reasoningBuffer.isEmpty()) item { ThinkingRow() }
+                        if (streamingBuffer.isNotEmpty() || reasoningBuffer.isNotEmpty()) item(key = "streaming") {
                             MessageBubble(
-                                ChatMessage("streaming", "temp", "assistant", streamingBuffer, System.currentTimeMillis()),
+                                ChatMessage(
+                                    "streaming", "temp", "assistant", streamingBuffer, System.currentTimeMillis(),
+                                    reasoning = reasoningBuffer.ifBlank { null },
+                                ),
                                 streaming = true,
                             ) { clipboard.setText(AnnotatedString(streamingBuffer)) }
                         }
@@ -265,20 +285,23 @@ private fun MessageBubble(message: ChatMessage, modifier: Modifier = Modifier, s
                 Text("AVS Chat", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }
             Spacer(Modifier.height(Spacing.s))
+
+            // Reasoning ("thinking") trace for reasoning-capable models.
+            val reasoningText = message.reasoning
+            if (!reasoningText.isNullOrBlank()) {
+                ReasoningSection(
+                    reasoning = reasoningText,
+                    active = streaming && message.content.isBlank(),
+                )
+                Spacer(Modifier.height(Spacing.s))
+            }
+
             message.localAttachmentUri?.let {
                 AsyncImage(it, null, Modifier.padding(bottom = Spacing.s).size(200.dp).clip(MaterialTheme.shapes.large), contentScale = ContentScale.Crop)
             }
             if (streaming) {
-                // While generating, render plain stable text so existing words never re-flow
-                // (no per-token markdown re-parse). Full markdown renders once the message lands.
-                SelectionContainer {
-                    Text(
-                        text = message.content,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
+                // Live markdown, revealed at a smooth steady cadence (decoupled from bursty chunks).
+                if (message.content.isNotBlank()) SmoothStreamingText(message.content, Modifier.fillMaxWidth())
             } else {
                 MarkdownText(text = message.content, modifier = Modifier.fillMaxWidth())
             }
@@ -289,6 +312,120 @@ private fun MessageBubble(message: ChatMessage, modifier: Modifier = Modifier, s
                     modifier = Modifier.size(32.dp),
                     colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                 ) { Icon(Icons.Default.ContentCopy, "Copy", Modifier.size(16.dp)) }
+            }
+        }
+    }
+}
+
+/**
+ * Smooth "typewriter" reveal, the way production AI apps (T3 Chat, Vercel v0, ChatGPT) do it:
+ * the network delivers text in bursts, but we reveal it at a steady, frame-synced cadence so it
+ * reads pleasantly instead of flickering in chunks. The pace is a gentle base speed plus a
+ * proportional catch-up, so it never lags far behind a fast model yet never feels rushed.
+ */
+@Composable
+private fun SmoothStreamingText(
+    text: String,
+    modifier: Modifier = Modifier,
+    markdown: Boolean = true,
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyLarge,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+) {
+    val target by rememberUpdatedState(text)
+    var shown by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) {
+        var lastFrame = 0L
+        while (true) {
+            val frame = withFrameNanos { it }
+            val dt = if (lastFrame == 0L) 0f else (frame - lastFrame) / 1_000_000_000f
+            lastFrame = frame
+            val t = target
+            if (shown > t.length) shown = 0 // a new message started — restart the reveal
+            if (shown < t.length) {
+                val remaining = t.length - shown
+                // Steady, pleasant cadence that scales with backlog so the whole answer finishes a
+                // beat after the model (≈2s drain), never instant-dumping even at 1000+ tps.
+                val charsPerSec = (remaining / 2f).coerceIn(40f, 900f)
+                val add = (charsPerSec * dt).toInt().coerceAtLeast(1)
+                shown = (shown + add).coerceAtMost(t.length)
+            }
+        }
+    }
+    val revealed = target.take(shown)
+    if (markdown) {
+        // Live markdown while streaming. Because the text is revealed gradually (not in bursts),
+        // markdown spans complete one char at a time, so re-layout stays smooth like ChatGPT/Claude.
+        MarkdownText(text = revealed, modifier = modifier, textColor = color, style = style)
+    } else {
+        SelectionContainer { Text(text = revealed, style = style, color = color, modifier = modifier) }
+    }
+}
+
+/**
+ * Collapsible reasoning ("thinking") trace, styled like T3 Chat / Claude. Subtly tinted so it reads
+ * as meta-content. Auto-expands and streams while the model is reasoning, then auto-collapses once
+ * the answer begins; the user can expand/collapse at any time (collapsed by default once complete).
+ */
+@Composable
+private fun ReasoningSection(reasoning: String, active: Boolean) {
+    var userToggled by remember { mutableStateOf<Boolean?>(null) }
+    val expanded = userToggled ?: active
+    val chevron by animateFloatAsState(if (expanded) 180f else 0f, label = "reasoning-chevron")
+    Surface(
+        onClick = { userToggled = !expanded },
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.35f),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(horizontal = Spacing.base, vertical = Spacing.m)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Psychology, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.tertiary)
+                Spacer(Modifier.width(Spacing.s))
+                Text(
+                    if (active) "Reasoning…" else "Reasoning",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                if (active) {
+                    Spacer(Modifier.width(Spacing.s))
+                    LoadingIndicator(color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.weight(1f))
+                Icon(
+                    Icons.Default.KeyboardArrowDown, if (expanded) "Collapse" else "Expand",
+                    Modifier.size(20.dp).rotate(chevron),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            AnimatedVisibility(visible = expanded, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+                if (active) {
+                    // Bounded, internally auto-scrolling panel so a fast reasoning stream can never
+                    // overflow / "break out" of the container — it scrolls within a fixed height.
+                    val sc = rememberScrollState()
+                    LaunchedEffect(sc.maxValue) { sc.scrollTo(sc.maxValue) }
+                    Box(
+                        Modifier
+                            .padding(top = Spacing.s)
+                            .fillMaxWidth()
+                            .heightIn(max = 190.dp)
+                            .verticalScroll(sc),
+                    ) {
+                        SmoothStreamingText(
+                            reasoning, Modifier.fillMaxWidth(),
+                            markdown = true,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else {
+                    Box(Modifier.padding(top = Spacing.s)) {
+                        MarkdownText(
+                            reasoning, Modifier.fillMaxWidth(),
+                            textColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
             }
         }
     }
