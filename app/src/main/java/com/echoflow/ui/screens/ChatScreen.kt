@@ -6,7 +6,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -49,7 +48,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.graphics.shapes.RoundedPolygon
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -62,6 +63,7 @@ import com.echoflow.ui.ChatViewModel
 import com.echoflow.ui.SettingsViewModel
 import com.echoflow.ui.components.BrandMark
 import com.echoflow.ui.components.MarkdownText
+import com.echoflow.ui.components.RichMarkdown
 import com.echoflow.ui.theme.BrandShapes
 import com.echoflow.ui.theme.MorphPolygonShape
 import com.echoflow.ui.theme.Spacing
@@ -111,53 +113,54 @@ fun ChatScreen(
         onResult = { uri -> if (uri != null) chatViewModel.setPendingAttachment(uri) },
     )
 
+    // Measure the floating input's height so the message list always pads exactly enough to clear
+    // it — including when the keyboard pushes the input up (its measured height grows with the inset).
+    val density = LocalDensity.current
+    var inputHeightPx by remember { mutableStateOf(0) }
+    val messageBottomInset = if (inputHeightPx > 0) with(density) { inputHeightPx.toDp() } else 96.dp
+    // Top inset so the chat scrolls behind the floating top bar without hiding the first message.
+    val topBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
-        // Let the input toolbar handle the bottom (ime/nav-bar) inset itself so there is no dead
-        // gap between the field and the keyboard.
+        // Everything (top bar + input) floats; the chat fills behind it. Insets handled per-element.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
+    ) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            if (messages.isEmpty() && !isStreaming && !progressLoading) {
+                EmptyState { textInput = it }
+            } else {
+                // key() gives each conversation a fresh MessagesPane (own scroll state), so switching
+                // opens at the bottom with no inherited-offset jump. bottomInset keeps the last
+                // message clear of the floating input.
+                key(currentThreadId) {
+                    MessagesPane(
+                        messages = messages,
+                        isStreaming = isStreaming,
+                        streamingBuffer = streamingBuffer,
+                        reasoningBuffer = reasoningBuffer,
+                        progressLoading = progressLoading,
+                        topInset = topBarInset,
+                        bottomInset = messageBottomInset,
+                        onCopy = { clipboard.setText(AnnotatedString(it)) },
+                    )
+                }
+            }
+
+            // Floating, transparent top bar (chat scrolls behind it).
             ChatTopBar(
+                modifier = Modifier.align(Alignment.TopCenter),
                 modelName = modelShortName,
                 onMenu = onMenuClicked,
                 onModel = { showModelMenu = true },
                 onNewChat = { chatViewModel.startNewChat() },
             )
-        },
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            AnimatedVisibility(
-                visible = errorMessage != null,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut(),
-            ) {
-                errorMessage?.let { ErrorBanner(it) { chatViewModel.clearError() } }
-            }
 
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                // Smoothly cross-fade when switching between conversations (each pane keeps its own
-                // scroll state, so there is no jump from the previous chat's scroll position).
-                Crossfade(
-                    targetState = currentThreadId,
-                    animationSpec = tween(durationMillis = 240),
-                    label = "chat-switch",
-                ) { _ ->
-                    if (messages.isEmpty() && !isStreaming && !progressLoading) {
-                        EmptyState { textInput = it }
-                    } else {
-                        MessagesPane(
-                            messages = messages,
-                            isStreaming = isStreaming,
-                            streamingBuffer = streamingBuffer,
-                            reasoningBuffer = reasoningBuffer,
-                            progressLoading = progressLoading,
-                            onCopy = { clipboard.setText(AnnotatedString(it)) },
-                        )
-                    }
-                }
-            }
-
+            // Floating input toolbar over the bottom of the chat.
             InputToolbar(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .onSizeChanged { inputHeightPx = it.height },
                 text = textInput,
                 onText = { textInput = it },
                 pendingUri = pendingUri?.toString(),
@@ -167,6 +170,16 @@ fun ChatScreen(
                 isStreaming = isStreaming,
                 onSend = { val t = textInput; textInput = ""; chatViewModel.sendMessage(t) },
             )
+
+            // Error banner floats just below the top bar.
+            AnimatedVisibility(
+                visible = errorMessage != null,
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = topBarInset),
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                errorMessage?.let { ErrorBanner(it) { chatViewModel.clearError() } }
+            }
         }
     }
 
@@ -183,7 +196,7 @@ fun ChatScreen(
 
 /**
  * The scrolling message list for one conversation. Owns its own [LazyListState] so each chat keeps
- * its scroll position and a switch (via the parent Crossfade) doesn't inherit the previous chat's
+ * its scroll position and a switch (via the parent key()) doesn't inherit the previous chat's
  * offset. Keeps the stick-to-bottom behaviour (respects manual scroll, follows streaming).
  */
 @Composable
@@ -193,6 +206,8 @@ private fun MessagesPane(
     streamingBuffer: String,
     reasoningBuffer: String,
     progressLoading: Boolean,
+    topInset: Dp = Spacing.l,
+    bottomInset: Dp = Spacing.l,
     onCopy: (String) -> Unit,
 ) {
     val listState = rememberLazyListState()
@@ -228,7 +243,7 @@ private fun MessagesPane(
         state = listState,
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(Spacing.l),
-        contentPadding = PaddingValues(horizontal = Spacing.base, vertical = Spacing.l),
+        contentPadding = PaddingValues(start = Spacing.base, end = Spacing.base, top = topInset, bottom = bottomInset),
     ) {
         items(messages, key = { it.id }) { msg ->
             MessageBubble(msg) { onCopy(msg.content) }
@@ -247,8 +262,9 @@ private fun MessagesPane(
 }
 
 @Composable
-private fun ChatTopBar(modelName: String, onMenu: () -> Unit, onModel: () -> Unit, onNewChat: () -> Unit) {
+private fun ChatTopBar(modelName: String, onMenu: () -> Unit, onModel: () -> Unit, onNewChat: () -> Unit, modifier: Modifier = Modifier) {
     CenterAlignedTopAppBar(
+        modifier = modifier,
         navigationIcon = {
             // Fun shaped icon button (morphs on press), vividly themed.
             ShapedIconButton(
@@ -287,7 +303,7 @@ private fun ChatTopBar(modelName: String, onMenu: () -> Unit, onModel: () -> Uni
                 pulseOnClick = true,
             ) { Icon(Icons.Default.Add, "New conversation", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer) }
         },
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
     )
 }
 
@@ -352,7 +368,8 @@ private fun MessageBubble(message: ChatMessage, modifier: Modifier = Modifier, s
                 // Live markdown, revealed at a smooth steady cadence (decoupled from bursty chunks).
                 if (message.content.isNotBlank()) SmoothStreamingText(message.content, Modifier.fillMaxWidth())
             } else {
-                MarkdownText(text = message.content, modifier = Modifier.fillMaxWidth())
+                // World-class render for the finished message: tables, lists, highlighted code, etc.
+                RichMarkdown(message.content, Modifier.fillMaxWidth())
             }
             if (!streaming) {
                 Spacer(Modifier.height(Spacing.xs))
@@ -559,9 +576,10 @@ private fun InputToolbar(
     onAttach: () -> Unit,
     isStreaming: Boolean,
     onSend: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        Modifier
+        modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars))
             .padding(horizontal = Spacing.base, vertical = Spacing.m),
