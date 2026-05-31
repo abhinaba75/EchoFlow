@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [ChatThread::class, ChatMessage::class, CustomModel::class],
-    version = 1,
+    version = 2, // v2: added ChatMessage.reasoning (destructive migration is enabled)
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

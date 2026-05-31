@@ -19,6 +19,12 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
+/** A piece of a streamed completion: either reasoning ("thinking") or final answer content. */
+sealed class StreamChunk {
+    data class Reasoning(val text: String) : StreamChunk()
+    data class Content(val text: String) : StreamChunk()
+}
+
 class OpenRouterService(private val context: Context) {
 
     private val client = OkHttpClient.Builder()
@@ -149,7 +155,7 @@ class OpenRouterService(private val context: Context) {
     /**
      * Run Streaming completions with flows.
      */
-    fun sendChatMessageStream(apiKey: String, model: String, history: List<ChatMessage>): Flow<String> = flow {
+    fun sendChatMessageStream(apiKey: String, model: String, history: List<ChatMessage>): Flow<StreamChunk> = flow {
         if (apiKey.isBlank()) {
             throw Exception("API key is missing! Please configure it in your Settings.")
         }
@@ -158,7 +164,11 @@ class OpenRouterService(private val context: Context) {
         val requestMap = mapOf(
             "model" to model,
             "messages" to messagesPayload,
-            "stream" to true
+            "stream" to true,
+            // Ask OpenRouter to stream reasoning tokens for reasoning-capable models. Models that
+            // don't support it simply ignore this and never send a `reasoning` delta.
+            "include_reasoning" to true,
+            "reasoning" to mapOf("enabled" to true)
         )
 
         val jsonPayload = dynamicAdapter.toJson(requestMap)
@@ -202,9 +212,15 @@ class OpenRouterService(private val context: Context) {
                         val choices = map?.get("choices") as? List<*>
                         val choice = choices?.firstOrNull() as? Map<*, *>
                         val delta = choice?.get("delta") as? Map<*, *>
+                        // Reasoning tokens (different providers name the field differently).
+                        val reasoning = (delta?.get("reasoning") as? String)
+                            ?: (delta?.get("reasoning_content") as? String)
+                        if (!reasoning.isNullOrEmpty()) {
+                            emit(StreamChunk.Reasoning(reasoning))
+                        }
                         val content = delta?.get("content") as? String
                         if (!content.isNullOrEmpty()) {
-                            emit(content)
+                            emit(StreamChunk.Content(content))
                         }
                     } catch (e: Exception) {
                         // Resilient inline SSE fail ignores
