@@ -1,18 +1,25 @@
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
 
-package com.example.ui.screens
+package com.echoflow.ui.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -35,8 +42,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
+import androidx.graphics.shapes.RoundedPolygon
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
@@ -46,16 +57,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.data.ChatMessage
-import com.example.ui.ChatViewModel
-import com.example.ui.SettingsViewModel
-import com.example.ui.components.BrandMark
-import com.example.ui.components.MarkdownText
-import com.example.ui.theme.BrandShapes
-import com.example.ui.theme.MorphPolygonShape
-import com.example.ui.theme.Spacing
-import com.example.ui.theme.rememberMorph
-import com.example.ui.theme.rememberMorphProgress
+import com.echoflow.data.ChatMessage
+import com.echoflow.ui.ChatViewModel
+import com.echoflow.ui.SettingsViewModel
+import com.echoflow.ui.components.BrandMark
+import com.echoflow.ui.components.MarkdownText
+import com.echoflow.ui.theme.BrandShapes
+import com.echoflow.ui.theme.MorphPolygonShape
+import com.echoflow.ui.theme.Spacing
+import com.echoflow.ui.theme.rememberMorph
+import com.echoflow.ui.theme.rememberMorphProgress
+import kotlinx.coroutines.launch
 
 /** Single built-in model. Everything else the user adds in Settings. */
 private val DEFAULT_MODEL = "google/gemini-2.0-flash" to "Gemini 2.0 Flash"
@@ -80,22 +92,10 @@ fun ChatScreen(
     val pendingName by chatViewModel.pendingAttachmentName.collectAsState()
     val selectedModelID by settingsViewModel.selectedModel.collectAsState()
     val customModelsList by settingsViewModel.customModels.collectAsState()
+    val currentThreadId by chatViewModel.currentChatThreadId.collectAsState()
 
     var textInput by remember { mutableStateOf("") }
-    val listState = rememberLazyListState()
     var showModelMenu by remember { mutableStateOf(false) }
-
-    // Stick-to-bottom that respects manual scrolling: only auto-follow while the user is already
-    // viewing the latest message. If they scroll up, streaming stops yanking them back.
-    var autoFollow by remember { mutableStateOf(true) }
-    val atBottom by remember {
-        derivedStateOf {
-            val li = listState.layoutInfo
-            val last = li.visibleItemsInfo.lastOrNull() ?: return@derivedStateOf true
-            // Last item is the newest AND its bottom edge has been reached.
-            last.index >= li.totalItemsCount - 1 && (last.offset + last.size) <= li.viewportEndOffset + 8
-        }
-    }
 
     val activeModelList = remember(customModelsList) {
         val list = mutableListOf(DEFAULT_MODEL)
@@ -110,31 +110,6 @@ fun ChatScreen(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri -> if (uri != null) chatViewModel.setPendingAttachment(uri) },
     )
-
-    // Update the follow flag only from user-driven scrolling.
-    LaunchedEffect(atBottom, listState.isScrollInProgress) {
-        if (listState.isScrollInProgress) autoFollow = atBottom
-    }
-    // Pin to bottom on discrete events (new message sent, thinking row appears).
-    LaunchedEffect(messages.size, progressLoading) {
-        if (autoFollow) {
-            val idx = listState.layoutInfo.totalItemsCount - 1
-            if (idx >= 0) runCatching { listState.scrollToItem(idx, Int.MAX_VALUE) }
-        }
-    }
-    // While generating, keep the bottom pinned every frame so the smooth text reveal stays in view
-    // — but skip frames where the user is actively scrolling, so manual scroll-up isn't fought.
-    LaunchedEffect(autoFollow, isStreaming, progressLoading) {
-        if (autoFollow && (isStreaming || progressLoading)) {
-            while (true) {
-                withFrameNanos { it }
-                if (!listState.isScrollInProgress) {
-                    val idx = listState.layoutInfo.totalItemsCount - 1
-                    if (idx >= 0) runCatching { listState.scrollToItem(idx, Int.MAX_VALUE) }
-                }
-            }
-        }
-    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -160,28 +135,24 @@ fun ChatScreen(
             }
 
             Box(Modifier.weight(1f).fillMaxWidth()) {
-                if (messages.isEmpty() && !isStreaming && !progressLoading) {
-                    EmptyState { textInput = it }
-                } else {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.l),
-                        contentPadding = PaddingValues(horizontal = Spacing.base, vertical = Spacing.l),
-                    ) {
-                        items(messages, key = { it.id }) { msg ->
-                            MessageBubble(msg) { clipboard.setText(AnnotatedString(msg.content)) }
-                        }
-                        if (progressLoading && streamingBuffer.isEmpty() && reasoningBuffer.isEmpty()) item { ThinkingRow() }
-                        if (streamingBuffer.isNotEmpty() || reasoningBuffer.isNotEmpty()) item(key = "streaming") {
-                            MessageBubble(
-                                ChatMessage(
-                                    "streaming", "temp", "assistant", streamingBuffer, System.currentTimeMillis(),
-                                    reasoning = reasoningBuffer.ifBlank { null },
-                                ),
-                                streaming = true,
-                            ) { clipboard.setText(AnnotatedString(streamingBuffer)) }
-                        }
+                // Smoothly cross-fade when switching between conversations (each pane keeps its own
+                // scroll state, so there is no jump from the previous chat's scroll position).
+                Crossfade(
+                    targetState = currentThreadId,
+                    animationSpec = tween(durationMillis = 240),
+                    label = "chat-switch",
+                ) { _ ->
+                    if (messages.isEmpty() && !isStreaming && !progressLoading) {
+                        EmptyState { textInput = it }
+                    } else {
+                        MessagesPane(
+                            messages = messages,
+                            isStreaming = isStreaming,
+                            streamingBuffer = streamingBuffer,
+                            reasoningBuffer = reasoningBuffer,
+                            progressLoading = progressLoading,
+                            onCopy = { clipboard.setText(AnnotatedString(it)) },
+                        )
                     }
                 }
             }
@@ -210,33 +181,111 @@ fun ChatScreen(
     }
 }
 
+/**
+ * The scrolling message list for one conversation. Owns its own [LazyListState] so each chat keeps
+ * its scroll position and a switch (via the parent Crossfade) doesn't inherit the previous chat's
+ * offset. Keeps the stick-to-bottom behaviour (respects manual scroll, follows streaming).
+ */
+@Composable
+private fun MessagesPane(
+    messages: List<ChatMessage>,
+    isStreaming: Boolean,
+    streamingBuffer: String,
+    reasoningBuffer: String,
+    progressLoading: Boolean,
+    onCopy: (String) -> Unit,
+) {
+    val listState = rememberLazyListState()
+    var autoFollow by remember { mutableStateOf(true) }
+    val atBottom by remember {
+        derivedStateOf {
+            val li = listState.layoutInfo
+            val last = li.visibleItemsInfo.lastOrNull() ?: return@derivedStateOf true
+            last.index >= li.totalItemsCount - 1 && (last.offset + last.size) <= li.viewportEndOffset + 8
+        }
+    }
+    LaunchedEffect(atBottom, listState.isScrollInProgress) {
+        if (listState.isScrollInProgress) autoFollow = atBottom
+    }
+    LaunchedEffect(messages.size, progressLoading) {
+        if (autoFollow) {
+            val idx = listState.layoutInfo.totalItemsCount - 1
+            if (idx >= 0) runCatching { listState.scrollToItem(idx, Int.MAX_VALUE) }
+        }
+    }
+    LaunchedEffect(autoFollow, isStreaming, progressLoading) {
+        if (autoFollow && (isStreaming || progressLoading)) {
+            while (true) {
+                withFrameNanos { it }
+                if (!listState.isScrollInProgress) {
+                    val idx = listState.layoutInfo.totalItemsCount - 1
+                    if (idx >= 0) runCatching { listState.scrollToItem(idx, Int.MAX_VALUE) }
+                }
+            }
+        }
+    }
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.l),
+        contentPadding = PaddingValues(horizontal = Spacing.base, vertical = Spacing.l),
+    ) {
+        items(messages, key = { it.id }) { msg ->
+            MessageBubble(msg) { onCopy(msg.content) }
+        }
+        if (progressLoading && streamingBuffer.isEmpty() && reasoningBuffer.isEmpty()) item { ThinkingRow() }
+        if (streamingBuffer.isNotEmpty() || reasoningBuffer.isNotEmpty()) item(key = "streaming") {
+            MessageBubble(
+                ChatMessage(
+                    "streaming", "temp", "assistant", streamingBuffer, System.currentTimeMillis(),
+                    reasoning = reasoningBuffer.ifBlank { null },
+                ),
+                streaming = true,
+            ) { onCopy(streamingBuffer) }
+        }
+    }
+}
+
 @Composable
 private fun ChatTopBar(modelName: String, onMenu: () -> Unit, onModel: () -> Unit, onNewChat: () -> Unit) {
     CenterAlignedTopAppBar(
         navigationIcon = {
-            FilledTonalIconButton(onClick = onMenu) { Icon(Icons.Default.Menu, "Open conversations") }
+            // Fun shaped icon button (morphs on press), vividly themed.
+            ShapedIconButton(
+                onClick = onMenu, enabled = true, size = 44.dp,
+                restShape = MaterialShapes.Cookie4Sided, pressedShape = MaterialShapes.Cookie7Sided,
+                container = MaterialTheme.colorScheme.primaryContainer,
+            ) { Icon(Icons.Default.Menu, "Open conversations", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer) }
         },
         title = {
-            // Themed model selector pill — uses secondaryContainer so dynamic color shows here too.
-            Surface(onClick = onModel, shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
-                Row(
-                    Modifier.padding(start = Spacing.base, end = Spacing.m, top = Spacing.s, bottom = Spacing.s),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        modelName,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = 170.dp),
-                    )
-                    Spacer(Modifier.width(Spacing.xs))
-                    Icon(Icons.Default.KeyboardArrowDown, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                }
-            }
+            // Model selector as a Material 3 Expressive split button — both halves open the picker.
+            SplitButtonLayout(
+                leadingButton = {
+                    SplitButtonDefaults.LeadingButton(onClick = onModel) {
+                        Text(
+                            modelName,
+                            style = MaterialTheme.typography.titleSmall,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.widthIn(max = 150.dp),
+                        )
+                    }
+                },
+                trailingButton = {
+                    // TrailingButton is a toggle in M3; we just use its tap to open the picker.
+                    SplitButtonDefaults.TrailingButton(checked = false, onCheckedChange = { onModel() }) {
+                        Icon(Icons.Default.KeyboardArrowDown, "Choose model", Modifier.size(20.dp))
+                    }
+                },
+            )
         },
         actions = {
-            FilledTonalIconButton(onClick = onNewChat) { Icon(Icons.Default.Add, "New conversation") }
+            // Fun shaped icon button that pops + morphs on click, vividly themed.
+            ShapedIconButton(
+                onClick = onNewChat, enabled = true, size = 44.dp,
+                restShape = MaterialShapes.Cookie7Sided, pressedShape = MaterialShapes.Sunny,
+                container = MaterialTheme.colorScheme.tertiaryContainer,
+                pulseOnClick = true,
+            ) { Icon(Icons.Default.Add, "New conversation", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer) }
         },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
     )
@@ -282,7 +331,7 @@ private fun MessageBubble(message: ChatMessage, modifier: Modifier = Modifier, s
             Row(verticalAlignment = Alignment.CenterVertically) {
                 BrandMark(size = 26.dp, animated = streaming)
                 Spacer(Modifier.width(Spacing.s))
-                Text("AVS Chat", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text("EchoFlow", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }
             Spacer(Modifier.height(Spacing.s))
 
@@ -542,13 +591,17 @@ private fun InputToolbar(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Row(Modifier.padding(Spacing.s), verticalAlignment = Alignment.CenterVertically) {
-                FilledTonalIconButton(
+                ShapedIconButton(
                     onClick = onAttach,
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    ),
-                ) { Icon(Icons.Outlined.AddPhotoAlternate, "Attach image", Modifier.size(20.dp)) }
+                    enabled = true,
+                    size = 44.dp,
+                    restShape = MaterialShapes.Cookie6Sided,
+                    pressedShape = MaterialShapes.Flower,
+                    container = MaterialTheme.colorScheme.tertiaryContainer,
+                    pulseOnClick = true,
+                ) {
+                    Icon(Icons.Outlined.AddPhotoAlternate, "Attach image", Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                }
 
                 TextField(
                     value = text,
@@ -578,25 +631,84 @@ private fun InputToolbar(
 
 @Composable
 private fun SendButton(enabled: Boolean, isStreaming: Boolean, onClick: () -> Unit) {
-    val container by animateColorAsState(
-        if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
-        label = "send-color",
-    )
-    val scale by animateFloatAsState(if (enabled) 1f else 0.85f, label = "send-scale")
-    Box(
-        Modifier.size(48.dp).scale(scale).clip(CircleShape).background(container),
-        contentAlignment = Alignment.Center,
-    ) {
-        when {
-            isStreaming -> LoadingIndicator(color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
-            else -> IconButton(onClick = onClick, enabled = enabled) {
-                Icon(
-                    Icons.AutoMirrored.Filled.Send, "Send", Modifier.size(20.dp),
-                    tint = if (enabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+    if (isStreaming) {
+        Box(
+            Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            contentAlignment = Alignment.Center,
+        ) { LoadingIndicator(color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp)) }
+    } else {
+        // The hero action gets the boldest shape — a "Sunny" that morphs to a rounder cookie on
+        // press with an expressive (bouncy) spring.
+        ShapedIconButton(
+            onClick = onClick,
+            enabled = enabled,
+            size = 48.dp,
+            restShape = MaterialShapes.Sunny,
+            pressedShape = MaterialShapes.Cookie12Sided,
+            container = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.Send, "Send", Modifier.size(20.dp),
+                tint = if (enabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
+}
+
+/**
+ * A "fun shape" icon button: filled with a [MaterialShapes] polygon that **morphs to a second
+ * shape on press** via the expressive bouncy spring (motion physics). A soft top-lit vertical
+ * gradient gives the flat shape a 2.5D sense of volume.
+ */
+@Composable
+private fun ShapedIconButton(
+    onClick: () -> Unit,
+    enabled: Boolean,
+    size: Dp,
+    restShape: RoundedPolygon,
+    pressedShape: RoundedPolygon,
+    container: Color,
+    pulseOnClick: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val pressProgress by animateFloatAsState(
+        targetValue = if (pressed) 1f else 0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow),
+        label = "icon-shape-morph",
+    )
+    // One-shot "pop + morph" pulse fired on click (for buttons whose action doesn't change the
+    // screen, like attaching a photo, so the feedback is actually seen).
+    val scope = rememberCoroutineScope()
+    val clickPulse = remember { Animatable(0f) }
+    val progress = maxOf(pressProgress, clickPulse.value)
+    val morph = rememberMorph(restShape, pressedShape)
+    val shape = MorphPolygonShape(morph, progress)
+    val popScale = 1f + 0.18f * clickPulse.value
+    // 2.5D volume: lighter at the top, base colour at the bottom.
+    val brush = Brush.verticalGradient(listOf(lerp(container, Color.White, 0.16f), container))
+    Box(
+        Modifier
+            .size(size)
+            .scale(popScale)
+            .clip(shape)
+            .background(brush)
+            .clickable(
+                interactionSource = interaction,
+                indication = ripple(bounded = true),
+                enabled = enabled,
+                onClick = {
+                    if (pulseOnClick) scope.launch {
+                        clickPulse.snapTo(0f)
+                        clickPulse.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+                        clickPulse.animateTo(0f, tween(durationMillis = 180))
+                    }
+                    onClick()
+                },
+            ),
+        contentAlignment = Alignment.Center,
+    ) { content() }
 }
 
 @Composable

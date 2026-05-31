@@ -1,4 +1,4 @@
-package com.example.data
+package com.echoflow.data
 
 import android.content.Context
 import android.content.SharedPreferences

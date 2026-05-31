@@ -1,11 +1,11 @@
-package com.example.ui
+package com.echoflow.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.data.CustomModel
-import com.example.data.CustomModelDao
-import com.example.data.SettingsRepository
+import com.echoflow.data.CustomModel
+import com.echoflow.data.CustomModelDao
+import com.echoflow.data.SettingsRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn

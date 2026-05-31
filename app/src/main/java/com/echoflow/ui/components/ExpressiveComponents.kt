@@ -1,4 +1,4 @@
-package com.example.ui.components
+package com.echoflow.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.padding
@@ -15,9 +15,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.R
-import com.example.ui.theme.Spacing
-import com.example.ui.theme.rememberMorphProgress
+import com.echoflow.R
+import com.echoflow.ui.theme.Spacing
+import com.echoflow.ui.theme.rememberMorphProgress
 
 /**
  * Shared Material 3 Expressive building blocks used across every screen. Centralising these is the
@@ -53,7 +53,7 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * The app's brand mark — the AVS logo rendered as a tintable silhouette. It is tinted with the
+ * The app's brand mark — the EchoFlow logo rendered as a tintable silhouette. It is tinted with the
  * [MaterialTheme.colorScheme.primary] role, so it adapts automatically to dark mode and to Material
  * You wallpaper-derived dynamic color. The monogram reads through as transparency. When [animated]
  * it gently breathes. Reused for the drawer header, empty-state hero, assistant avatar and model

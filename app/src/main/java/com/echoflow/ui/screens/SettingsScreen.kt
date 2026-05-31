@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
 
-package com.example.ui.screens
+package com.echoflow.ui.screens
 
 import android.os.Build
 import androidx.compose.foundation.background
@@ -31,12 +31,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.ui.SettingsViewModel
-import com.example.ui.components.GroupedItemGap
-import com.example.ui.components.groupedItemShape
-import com.example.ui.theme.BrandShapes
-import com.example.ui.theme.RoundedPolygonShape
-import com.example.ui.theme.Spacing
+import com.echoflow.ui.SettingsViewModel
+import com.echoflow.ui.components.GroupedItemGap
+import com.echoflow.ui.components.groupedItemShape
+import com.echoflow.ui.theme.BrandShapes
+import com.echoflow.ui.theme.RoundedPolygonShape
+import com.echoflow.ui.theme.Spacing
 
 private data class Accent(val id: String, val label: String, val swatch: Color)
 

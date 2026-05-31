@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
-package com.example.ui.theme
+package com.echoflow.ui.theme
 
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -109,3 +109,4 @@ object BrandShapes {
     val heroStart: RoundedPolygon get() = MaterialShapes.Sunny
     val heroEnd: RoundedPolygon get() = MaterialShapes.Cookie12Sided
 }
+
