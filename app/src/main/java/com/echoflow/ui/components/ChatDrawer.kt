@@ -41,11 +41,12 @@ import kotlin.math.abs
 
 private val PillShape = RoundedCornerShape(28.dp)
 
-// Expressive button shapes: a bold "leaning capsule" — two opposite corners fully round (50%),
-// the other two tight — so it clearly is NOT a plain rounded rectangle. On press it flips the
-// rounded diagonal, a dynamic Material 3 Expressive morph via the ButtonShapes API.
-private val ExpressiveButtonShape = RoundedCornerShape(topStartPercent = 50, topEndPercent = 18, bottomEndPercent = 50, bottomStartPercent = 18)
-private val ExpressiveButtonPressedShape = RoundedCornerShape(topStartPercent = 18, topEndPercent = 50, bottomEndPercent = 18, bottomStartPercent = 50)
+// Expressive button morph: a clean full capsule at rest that springs to a soft squircle on press
+// (the canonical Material 3 Expressive button interaction). Both are CornerBasedShapes so the
+// ButtonShapes morph interpolates smoothly.
+private val ButtonRestShape = RoundedCornerShape(percent = 50)
+private val ButtonPressedShape = RoundedCornerShape(percent = 30)
+
 
 @Composable
 fun ChatDrawerContent(
@@ -128,8 +129,7 @@ fun ChatDrawerContent(
                     onCloseDrawer?.invoke()
                 }
             },
-            // Expressive asymmetric shape that flips its diagonal on press (see shape defs above).
-            shapes = ButtonShapes(shape = ExpressiveButtonShape, pressedShape = ExpressiveButtonPressedShape),
+            shapes = ButtonShapes(shape = ButtonRestShape, pressedShape = ButtonPressedShape),
             interactionSource = newChatInteraction,
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp, pressedElevation = 0.dp),
             contentPadding = PaddingValues(horizontal = Spacing.l, vertical = Spacing.base),
@@ -188,8 +188,7 @@ fun ChatDrawerContent(
                     onCloseDrawer?.invoke()
                 }
             },
-            // Same expressive shape morph; tonal secondary container so it reads as secondary.
-            shapes = ButtonShapes(shape = ExpressiveButtonShape, pressedShape = ExpressiveButtonPressedShape),
+            shapes = ButtonShapes(shape = ButtonRestShape, pressedShape = ButtonPressedShape),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -202,9 +201,9 @@ fun ChatDrawerContent(
                 .heightIn(min = 56.dp)
                 .graphicsLayer { scaleX = settingsScale; scaleY = settingsScale },
         ) {
-            // Fun: a medallion that morphs Clover → Cookie while the gear spins, on click.
+            // Fun: a Ghost-ish medallion that morphs to a cookie while the gear spins, on click.
             val g = gearAnim.value
-            val gearMorph = rememberMorph(MaterialShapes.Clover4Leaf, MaterialShapes.Cookie7Sided)
+            val gearMorph = rememberMorph(MaterialShapes.Ghostish, MaterialShapes.Cookie7Sided)
             Box(
                 Modifier.size(32.dp).clip(MorphPolygonShape(gearMorph, g)).background(MaterialTheme.colorScheme.onTertiaryContainer),
                 contentAlignment = Alignment.Center,
