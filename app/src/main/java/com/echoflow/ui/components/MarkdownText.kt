@@ -1,4 +1,4 @@
-package com.example.ui.components
+package com.echoflow.ui.components
 
 import android.content.ClipData
 import android.content.ClipboardManager

@@ -1,7 +1,8 @@
-package com.example
+package com.echoflow
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -16,14 +17,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Settings
-import com.example.data.AppDatabase
-import com.example.data.SettingsRepository
-import com.example.ui.ChatViewModel
-import com.example.ui.SettingsViewModel
-import com.example.ui.components.ChatDrawerContent
-import com.example.ui.screens.ChatScreen
-import com.example.ui.screens.SettingsScreen
-import com.example.ui.theme.MyApplicationTheme
+import com.echoflow.data.AppDatabase
+import com.echoflow.data.SettingsRepository
+import com.echoflow.ui.ChatViewModel
+import com.echoflow.ui.SettingsViewModel
+import com.echoflow.ui.components.ChatDrawerContent
+import com.echoflow.ui.screens.ChatScreen
+import com.echoflow.ui.screens.SettingsScreen
+import com.echoflow.ui.theme.EchoFlowTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -64,7 +65,7 @@ class MainActivity : ComponentActivity() {
                 else -> isSystemDark
             }
 
-            MyApplicationTheme(
+            EchoFlowTheme(
                 darkTheme = themeActiveDark,
                 themeName = userThemeColor
             ) {
@@ -88,6 +89,9 @@ fun MainNavigationHub(
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (activeTab == "settings") {
+            // Intercept the system back gesture/button so it returns to chat
+            // instead of falling through to the Activity and exiting the app.
+            BackHandler { activeTab = "chat" }
             SettingsScreen(
                 viewModel = settingsViewModel,
                 onBackClicked = { activeTab = "chat" }
@@ -155,6 +159,8 @@ fun AdaptiveChatWorkspace(
 
             ModalNavigationDrawer(
                 drawerState = mobileDrawerState,
+                // Gestures on: swipe from the edge to open, swipe the sheet to close.
+                gesturesEnabled = true,
                 drawerContent = {
                     ModalDrawerSheet(
                         drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,

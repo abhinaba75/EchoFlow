@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
-package com.example.ui.theme
+package com.echoflow.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -17,10 +17,10 @@ import androidx.compose.ui.platform.LocalContext
  *
  * Uses [MaterialExpressiveTheme] with the expressive [MotionScheme] so every transition in the app
  * is driven by the physics-based spring system Google introduced with Material 3 Expressive.
- * The public signature is unchanged so the rest of the app keeps wiring through [MyApplicationTheme].
+ * The public signature is unchanged so the rest of the app keeps wiring through [EchoFlowTheme].
  */
 @Composable
-fun MyApplicationTheme(
+fun EchoFlowTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     themeName: String = "monochrome",
     content: @Composable () -> Unit,

@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-  namespace = "com.example"
+  namespace = "com.echoflow"
   compileSdk = 37
 
   defaultConfig {
-    applicationId = "com.aistudio.localopchat.gpxwxh"
+    applicationId = "com.echoflow"
     minSdk = 24
     targetSdk = 36
     versionCode = 1

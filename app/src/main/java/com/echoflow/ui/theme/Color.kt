@@ -1,4 +1,4 @@
-package com.example.ui.theme
+package com.echoflow.ui.theme
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
