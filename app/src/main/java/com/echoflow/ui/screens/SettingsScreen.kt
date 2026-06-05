@@ -59,6 +59,7 @@ fun SettingsScreen(
     val darkMode by viewModel.darkMode.collectAsState()
     val themeColor by viewModel.themeColor.collectAsState()
     val webSearchEnabled by viewModel.webSearchEnabled.collectAsState()
+    val searchEngine by viewModel.searchEngine.collectAsState()
     val customModels by viewModel.customModels.collectAsState()
 
     var keyInput by remember(apiKey) { mutableStateOf(apiKey) }
@@ -174,6 +175,42 @@ fun SettingsScreen(
                                 checked = webSearchEnabled,
                                 onCheckedChange = viewModel::saveWebSearchEnabled,
                             )
+                        }
+                        
+                        if (webSearchEnabled) {
+                            Spacer(Modifier.height(Spacing.m))
+                            HorizontalDivider()
+                            Spacer(Modifier.height(Spacing.m))
+                            Text("Search Engine", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+                            Spacer(Modifier.height(Spacing.s))
+                            
+                            val engines = listOf(
+                                Triple("duckduckgo", "DuckDuckGo", "Free"),
+                                Triple("google", "Google", "$2.50 / 1k searches"),
+                                Triple("tavily", "Tavily", "$2.50 / 1k searches"),
+                                Triple("brave", "Brave", "$3.00 / 1k searches"),
+                                Triple("exa", "Exa", "$5.00 / 1k searches")
+                            )
+                            
+                            engines.forEach { (id, name, price) ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { viewModel.saveSearchEngine(id) }
+                                        .padding(vertical = Spacing.xs),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = searchEngine == id,
+                                        onClick = { viewModel.saveSearchEngine(id) }
+                                    )
+                                    Spacer(Modifier.width(Spacing.s))
+                                    Column {
+                                        Text(name, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                                        Text(price, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
                         }
                     }
                 }

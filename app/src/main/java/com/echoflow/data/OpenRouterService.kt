@@ -102,7 +102,7 @@ class OpenRouterService(private val context: Context) {
     /**
      * Run standard non-streaming api completion.
      */
-    suspend fun sendChatMessage(apiKey: String, model: String, history: List<ChatMessage>, webSearchEnabled: Boolean = false): String = withContext(Dispatchers.IO) {
+    suspend fun sendChatMessage(apiKey: String, model: String, history: List<ChatMessage>, webSearchEnabled: Boolean = false, searchEngine: String = "duckduckgo"): String = withContext(Dispatchers.IO) {
         if (apiKey.isBlank()) {
             throw Exception("API key is missing! Please configure it in your Settings.")
         }
@@ -115,7 +115,7 @@ class OpenRouterService(private val context: Context) {
         )
         if (webSearchEnabled) {
             requestMap["plugins"] = listOf(
-                mapOf("id" to "web", "engine" to "exa", "max_results" to 5)
+                mapOf("id" to "web", "engine" to searchEngine, "max_results" to 5)
             )
         }
 
@@ -160,7 +160,7 @@ class OpenRouterService(private val context: Context) {
     /**
      * Run Streaming completions with flows.
      */
-    fun sendChatMessageStream(apiKey: String, model: String, history: List<ChatMessage>, webSearchEnabled: Boolean = false): Flow<StreamChunk> = flow {
+    fun sendChatMessageStream(apiKey: String, model: String, history: List<ChatMessage>, webSearchEnabled: Boolean = false, searchEngine: String = "duckduckgo"): Flow<StreamChunk> = flow {
         if (apiKey.isBlank()) {
             throw Exception("API key is missing! Please configure it in your Settings.")
         }
@@ -177,7 +177,7 @@ class OpenRouterService(private val context: Context) {
         )
         if (webSearchEnabled) {
             requestMap["plugins"] = listOf(
-                mapOf("id" to "web", "engine" to "exa", "max_results" to 5)
+                mapOf("id" to "web", "engine" to searchEngine, "max_results" to 5)
             )
         }
 
