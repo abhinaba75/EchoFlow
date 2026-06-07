@@ -21,7 +21,6 @@ class SettingsViewModel(
     val themeColor: StateFlow<String> = repository.themeColor
     val darkMode: StateFlow<String> = repository.darkMode
     val webSearchEnabled: StateFlow<Boolean> = repository.webSearchEnabled
-    val searchEngine: StateFlow<String> = repository.searchEngine
 
     val customModels: StateFlow<List<CustomModel>> = customModelDao.getAllCustomModels()
         .stateIn(
@@ -44,10 +43,6 @@ class SettingsViewModel(
 
     fun saveDarkMode(mode: String) {
         repository.saveDarkMode(mode)
-    }
-
-    fun saveSearchEngine(engine: String) {
-        repository.saveSearchEngine(engine)
     }
 
     fun saveWebSearchEnabled(enabled: Boolean) {

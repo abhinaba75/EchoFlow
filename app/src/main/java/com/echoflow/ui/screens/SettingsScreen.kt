@@ -59,7 +59,6 @@ fun SettingsScreen(
     val darkMode by viewModel.darkMode.collectAsState()
     val themeColor by viewModel.themeColor.collectAsState()
     val webSearchEnabled by viewModel.webSearchEnabled.collectAsState()
-    val searchEngine by viewModel.searchEngine.collectAsState()
     val customModels by viewModel.customModels.collectAsState()
 
     var keyInput by remember(apiKey) { mutableStateOf(apiKey) }
@@ -165,7 +164,7 @@ fun SettingsScreen(
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
                                 Text(
-                                    if (webSearchEnabled) "Search results will enrich model responses" else "Allow the model to search the web",
+                                    if (webSearchEnabled) "Enabled — Auto" else "Allow the model to search the web",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -176,41 +175,30 @@ fun SettingsScreen(
                                 onCheckedChange = viewModel::saveWebSearchEnabled,
                             )
                         }
-                        
+
                         if (webSearchEnabled) {
                             Spacer(Modifier.height(Spacing.m))
                             HorizontalDivider()
                             Spacer(Modifier.height(Spacing.m))
-                            Text("Search Engine", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+                            Text("Auto (recommended)", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
                             Spacer(Modifier.height(Spacing.s))
-                            
-                            val engines = listOf(
-                                Triple("duckduckgo", "DuckDuckGo", "Free"),
-                                Triple("google", "Google", "$2.50 / 1k searches"),
-                                Triple("tavily", "Tavily", "$2.50 / 1k searches"),
-                                Triple("brave", "Brave", "$3.00 / 1k searches"),
-                                Triple("exa", "Exa", "$5.00 / 1k searches")
+                            Text(
+                                "Select \"Auto\" in your OpenRouter web search settings. " +
+                                "The model decides if and when to search based on your prompt. " +
+                                "It uses the AI model's native search feature (OpenAI, Anthropic, xAI) " +
+                                "when available, otherwise defaults to Exa at \$0.005 per search request.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            
-                            engines.forEach { (id, name, price) ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { viewModel.saveSearchEngine(id) }
-                                        .padding(vertical = Spacing.xs),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    RadioButton(
-                                        selected = searchEngine == id,
-                                        onClick = { viewModel.saveSearchEngine(id) }
-                                    )
-                                    Spacer(Modifier.width(Spacing.s))
-                                    Column {
-                                        Text(name, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                                        Text(price, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                            }
+                            Spacer(Modifier.height(Spacing.m))
+                            Text("Pricing", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+                            Spacer(Modifier.height(Spacing.s))
+                            Text(
+                                "• Native search (OpenAI, Anthropic, xAI) — passed through at provider rates\n" +
+                                "• Exa — \$0.005/request (includes up to 10 results; +\$0.001/extra result)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }

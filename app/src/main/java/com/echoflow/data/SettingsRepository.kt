@@ -24,9 +24,6 @@ class SettingsRepository(context: Context) {
     private val _webSearchEnabled = MutableStateFlow(getWebSearchEnabledDirect())
     val webSearchEnabled: StateFlow<Boolean> = _webSearchEnabled.asStateFlow()
 
-    private val _searchEngine = MutableStateFlow(getSearchEngineDirect())
-    val searchEngine: StateFlow<String> = _searchEngine.asStateFlow()
-
     fun getApiKeyDirect(): String {
         return prefs.getString("openrouter_api_key", "").orEmpty()
     }
@@ -68,16 +65,6 @@ class SettingsRepository(context: Context) {
 
     fun getWebSearchEnabledDirect(): Boolean {
         return prefs.getBoolean("web_search_enabled", false)
-    }
-
-
-    fun getSearchEngineDirect(): String {
-        return prefs.getString("search_engine", "duckduckgo").orEmpty()
-    }
-
-    fun saveSearchEngine(engine: String) {
-        prefs.edit().putString("search_engine", engine).apply()
-        _searchEngine.value = engine
     }
 
     fun saveWebSearchEnabled(enabled: Boolean) {
